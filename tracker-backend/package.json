@@ -1,6 +1,6 @@
 {
   "type": "module",
-  "name": "tutorial-backend-dev",
+  "name": "tracker-backend",
   "version": "1.0.0",
   "description": "Tracker Node.js with Rest API",
   "main": "server.js",

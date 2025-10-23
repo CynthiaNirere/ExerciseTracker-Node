@@ -74,13 +74,16 @@ exports.login = async (req, res) => {
           fName: firstName,
           lName: lastName,
           email: email,
+          role: email.endsWith("@eagles.oc.edu") ? "athlete" : "coach",
         };
       }
+      
     })
     .catch((err) => {
       res.status(500).send({ message: err.message });
     });
 
+    
   // this lets us get the user id
   if (user.id === undefined) {
   
@@ -155,6 +158,7 @@ exports.login = async (req, res) => {
             fName: user.fName,
             lName: user.lName,
             userId: user.id,
+            role: user.role,
             token: session.token,
             // refresh_token: user.refresh_token,
             // expiration_date: user.expiration_date
@@ -196,7 +200,9 @@ exports.login = async (req, res) => {
           fName: user.fName,
           lName: user.lName,
           userId: user.id,
+          role: user.role,
           token: token,
+          
           // refresh_token: user.refresh_token,
           // expiration_date: user.expiration_date
         };

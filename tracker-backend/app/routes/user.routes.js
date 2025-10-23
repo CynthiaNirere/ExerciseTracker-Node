@@ -1,24 +1,17 @@
-  import users from "../controllers/user.controller.js";
-  import  authenticate from "../authorization/authorization.js";
-  import { Router } from "express";
-  var router = Router()
+import express from "express";
+import * as users from "../controllers/user.controller.js";
+import authenticate from "../authorization/authorization.js";
 
+const router = express.Router();
 
-  // Create a new User
-  router.post("/", [authenticate], users.create);
+// CRUD routes
+router.post("/", authenticate, users.create);
+router.get("/", authenticate, users.findAll);
+router.get("/:id", authenticate, users.findOne);
+router.put("/:id", authenticate, users.update);
+router.delete("/:id", authenticate, users.remove);
 
-  // Retrieve all People
-  router.get("/", [authenticate], users.findAll);
+// Optional: find by email
+router.get("/email/:email", authenticate, users.findByEmail);
 
-  // Retrieve a single User with id
-  router.get("/:id", [authenticate], users.findOne);
-
-  // Update a User with id
-  router.put("/:id", [authenticate], users.update);
-
-  // Delete a User with id
-  router.delete("/:id", [authenticate], users.delete);
-
-
-  export default router;
-
+export default router;

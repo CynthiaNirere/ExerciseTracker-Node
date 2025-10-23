@@ -1,151 +1,93 @@
-import db  from "../models/index.js";
+import db from "../models/index.js";
 const User = db.user;
-const Op = db.Sequelize.Op;
-const exports = {};
+const { Op } = db.Sequelize;
+
 // Create and Save a new User
-exports.create = (req, res) => {
-  // Validate request
-  if (!req.body.fName) {
-    res.status(400).send({
-      message: "Content can not be empty!",
+export const create = async (req, res) => {
+  try {
+    if (!req.body.fName || !req.body.email) {
+      return res.status(400).send({ message: "Required fields missing!" });
+    }
+
+    const user = await User.create({
+      fName: req.body.fName,
+      lName: req.body.lName,
+      email: req.body.email,
+      password_hash: req.body.password_hash || null,
+      role: req.body.role || "athlete",
     });
-    return;
+
+    res.status(201).send(user);
+  } catch (err) {
+    res.status(500).send({
+      message: err.message || "Error creating user.",
+    });
   }
-
-  // Create a User
-  const user = {
-    id: req.body.id,
-    fName: req.body.fName,
-    lName: req.body.lName,
-    email: req.body.email,
-    // refresh_token: req.body.refresh_token,
-    // expiration_date: req.body.expiration_date
-  };
-
-  // Save User in the database
-  User.create(user)
-    .then((data) => {
-      res.send(data);
-    })
-    .catch((err) => {
-      res.status(500).send({
-        message: err.message || "Some error occurred while creating the User.",
-      });
-    });
 };
 
-// Retrieve all People from the database.
-exports.findAll = (req, res) => {
-  const id = req.query.id;
-  var condition = id ? { id: { [Op.like]: `%${id}%` } } : null;
-
-  User.findAll({ where: condition })
-    .then((data) => {
-      res.send(data);
-    })
-    .catch((err) => {
-      res.status(500).send({
-        message: err.message || "Some error occurred while retrieving people.",
-      });
-    });
+// Retrieve all Users
+export const findAll = async (req, res) => {
+  try {
+    const id = req.query.id;
+    const condition = id ? { user_id: { [Op.like]: `%${id}%` } } : undefined;
+    const users = await User.findAll({ where: condition });
+    res.send(users);
+  } catch (err) {
+    res.status(500).send({ message: "Error retrieving users." });
+  }
 };
 
-// Find a single User with an id
-exports.findOne = (req, res) => {
-  const id = req.params.id;
-
-  User.findByPk(id)
-    .then((data) => {
-      if (data) {
-        res.send(data);
-      } else {
-        res.status(404).send({
-          message: `Cannot find User with id=${id}.`,
-        });
-      }
-    })
-    .catch((err) => {
-      res.status(500).send({
-        message: "Error retrieving User with id=" + id,
-      });
-    });
+// Find one User by ID
+export const findOne = async (req, res) => {
+  try {
+    const id = req.params.id;
+    const user = await User.findByPk(id);
+    if (!user)
+      return res.status(404).send({ message: `User not found with id=${id}` });
+    res.send(user);
+  } catch (err) {
+    res.status(500).send({ message: "Error retrieving user." });
+  }
 };
 
-// Find a single User with an email
-exports.findByEmail = (req, res) => {
-  const email = req.params.email;
-
-  User.findOne({
-    where: {
-      email: email,
-    },
-  })
-    .then((data) => {
-      if (data) {
-        res.send(data);
-      } else {
-        res.send({ email: "not found" });
-        /*res.status(404).send({
-          message: `Cannot find User with email=${email}.`
-        });*/
-      }
-    })
-    .catch((err) => {
-      res.status(500).send({
-        message: "Error retrieving User with email=" + email,
-      });
-    });
+// Find by email
+export const findByEmail = async (req, res) => {
+  try {
+    const email = req.params.email;
+    const user = await User.findOne({ where: { email } });
+    if (!user) return res.status(404).send({ message: "Email not found." });
+    res.send(user);
+  } catch (err) {
+    res.status(500).send({ message: "Error retrieving user by email." });
+  }
 };
 
-// Update a User by the id in the request
-exports.update = (req, res) => {
-  const id = req.params.id;
+// Update a User
+export const update = async (req, res) => {
+  try {
+    const id = req.params.id;
+    const [updated] = await User.update(req.body, { where: { user_id: id } });
 
-  User.update(req.body, {
-    where: { id: id },
-  })
-    .then((num) => {
-      if (num == 1) {
-        res.send({
-          message: "User was updated successfully.",
-        });
-      } else {
-        res.send({
-          message: `Cannot update User with id=${id}. Maybe User was not found or req.body is empty!`,
-        });
-      }
-    })
-    .catch((err) => {
-      res.status(500).send({
-        message: "Error updating User with id=" + id,
-      });
-    });
+    if (updated === 1)
+      res.send({ message: "User updated successfully." });
+    else
+      res.status(404).send({ message: `User not found or no data changed.` });
+  } catch (err) {
+    res.status(500).send({ message: "Error updating user." });
+  }
 };
 
-// Delete a User with the specified id in the request
-exports.delete = (req, res) => {
-  const id = req.params.id;
+// Delete a User
+export const remove = async (req, res) => {
+  try {
+    const id = req.params.id;
+    const deleted = await User.destroy({ where: { user_id: id } });
 
-  User.destroy({
-    where: { id: id },
-  })
-    .then((num) => {
-      if (num == 1) {
-        res.send({
-          message: "User was deleted successfully!",
-        });
-      } else {
-        res.send({
-          message: `Cannot delete User with id=${id}. Maybe User was not found!`,
-        });
-      }
-    })
-    .catch((err) => {
-      res.status(500).send({
-        message: "Could not delete User with id=" + id,
-      });
-    });
+    if (deleted)
+      res.send({ message: "User deleted successfully." });
+    else
+      res.status(404).send({ message: `User not found.` });
+  } catch (err) {
+    res.status(500).send({ message: "Error deleting user." });
+  }
 };
-
-
-export default exports;

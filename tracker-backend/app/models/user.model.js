@@ -1,34 +1,51 @@
-import Sequelize from "sequelize";
-import SequelizeInstance from "../config/sequelizeInstance.js";
+import { DataTypes } from "sequelize";
+import sequelize from "../config/sequelizeInstance.js";
 
-const User = SequelizeInstance.define("user", {
-  
-  id: {
-    type: Sequelize.INTEGER,
-    autoIncrement: true,
-    primaryKey: true,
+const User = sequelize.define(
+  "User",
+  {
+    id: {
+      type: DataTypes.INTEGER,
+      autoIncrement: true,
+      primaryKey: true,
+      field: 'user_id'  // Maps to user_id in database
+    },
+    fName: {
+      type: DataTypes.STRING(100),
+      allowNull: false,
+      field: 'first_name'  // Maps to first_name in database
+    },
+    lName: {
+      type: DataTypes.STRING(100),
+      allowNull: false,
+      field: 'last_name'  // Maps to last_name in database
+    },
+    email: {
+      type: DataTypes.STRING(255),
+      allowNull: false,
+      unique: true,
+      validate: {
+        isEmail: true,
+      },
+    },
+    password_hash: {
+      type: DataTypes.STRING(255),
+      allowNull: true, // optional if using Google login or SSO
+    },
+    role: {
+      type: DataTypes.ENUM("admin", "coach", "athlete"),
+      allowNull: false,
+      defaultValue: "athlete",
+    },
+    created_at: {
+      type: DataTypes.DATE,
+      defaultValue: DataTypes.NOW,
+    },
   },
-  fName: {
-    type: Sequelize.STRING,
-    allowNull: false,
-  },
-  lName: {
-    type: Sequelize.STRING,
-    allowNull: false,
-  },
-  email: {
-    type: Sequelize.STRING,
-    allowNull: false,
-  },
-  // refresh_token: {
-  //   type: Sequelize.STRING(512),
-  //   allowNull: true
-  // },
-  // expiration_date: {
-  //   type: Sequelize.DATE,
-  //   allowNull: true
-  // },
-});
+  {
+    tableName: "users",
+    timestamps: false,
+  }
+);
 
 export default User;
-
