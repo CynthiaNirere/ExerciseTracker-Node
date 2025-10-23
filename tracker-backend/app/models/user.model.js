@@ -1,18 +1,17 @@
 import Sequelize from "sequelize";
 import SequelizeInstance from "../config/sequelizeInstance.js";
 
-const User = SequelizeInstance.define("user", {
-  
-  id: {
+const User = SequelizeInstance.define("users", {
+  user_id: {
     type: Sequelize.INTEGER,
     autoIncrement: true,
     primaryKey: true,
   },
-  fName: {
+  first_name: {
     type: Sequelize.STRING,
     allowNull: false,
   },
-  lName: {
+  last_name: {
     type: Sequelize.STRING,
     allowNull: false,
   },
@@ -20,15 +19,23 @@ const User = SequelizeInstance.define("user", {
     type: Sequelize.STRING,
     allowNull: false,
   },
-  // refresh_token: {
-  //   type: Sequelize.STRING(512),
-  //   allowNull: true
-  // },
-  // expiration_date: {
-  //   type: Sequelize.DATE,
-  //   allowNull: true
-  // },
+  password_hash: {
+    type: Sequelize.STRING(255),
+    allowNull: true,
+  },
+  role: {
+    type: Sequelize.ENUM('admin', 'coach', 'athlete'),
+    defaultValue: 'athlete',
+    allowNull: false,
+  },
+  created_at: {
+    type: Sequelize.DATE,
+    allowNull: false,
+    defaultValue: Sequelize.NOW
+  }
+}, {
+  timestamps: false,  
+  tableName: 'users'
 });
 
 export default User;
-

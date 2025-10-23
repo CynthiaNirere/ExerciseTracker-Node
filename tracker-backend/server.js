@@ -1,15 +1,21 @@
-
 import routes from "./app/routes/index.js";
 import express, { json, urlencoded } from "express"
 import cors from "cors";
 
-import db  from "./app/models/index.js";
+import db from "./app/models/index.js";
 
-db.sequelize.sync();
+
+db.sequelize
+  .authenticate()
+  .then(() => {
+    console.log(' Database connection established successfully.');
+  })
+  .catch(err => {
+    console.error(' Unable to connect to the database:', err);
+  });
 
 const app = express();
 
-// Also use the cors middleware as backup
 var corsOptions = {
   origin: "http://localhost:8081",
   credentials: true
@@ -17,12 +23,9 @@ var corsOptions = {
 app.use(cors(corsOptions));
 
 
-// parse requests of content-type - application/json
 app.use(express.json());
-// parse requests of content-type - application/x-www-form-urlencoded
 app.use(express.urlencoded({ extended: true }));
   
-// Load the routes from the routes folder
 app.use("/tracker-t1", routes); 
 
 
