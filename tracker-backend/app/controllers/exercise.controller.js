@@ -5,20 +5,18 @@ const { Op } = db.Sequelize;
 // Create and Save a new Exercise
 export const create = async (req, res) => {
   try {
-    if (!req.body.name || !req.body.category || !req.body.muscleGroups) {
-      return res.status(400).send({ message: "Required fields missing!" });
+    if (!req.body.name) {
+      return res.status(400).send({ message: "Exercise name is required!" });
     }
-
     const exercise = await Exercise.create({
       name: req.body.name,
-      category: req.body.category,
-      muscleGroups: req.body.muscleGroups,
-      equipment: req.body.equipment || null,
+      category: req.body.category || "Strength",
+      muscleGroup: req.body.muscleGroup || null,        
+      equipmentNeeded: req.body.equipmentNeeded || null, 
       description: req.body.description || null,
       instructions: req.body.instructions || null,
       difficulty: req.body.difficulty || "Beginner",
     });
-
     res.status(201).send(exercise);
   } catch (err) {
     res.status(500).send({
