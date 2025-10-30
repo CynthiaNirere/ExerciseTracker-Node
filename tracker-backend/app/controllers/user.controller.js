@@ -8,7 +8,6 @@ export const create = async (req, res) => {
     if (!req.body.fName || !req.body.email) {
       return res.status(400).send({ message: "Required fields missing!" });
     }
-
     const user = await User.create({
       fName: req.body.fName,
       lName: req.body.lName,
@@ -16,7 +15,6 @@ export const create = async (req, res) => {
       password_hash: req.body.password_hash || null,
       role: req.body.role || "athlete",
     });
-
     res.status(201).send(user);
   } catch (err) {
     res.status(500).send({
@@ -29,7 +27,7 @@ export const create = async (req, res) => {
 export const findAll = async (req, res) => {
   try {
     const id = req.query.id;
-    const condition = id ? { user_id: { [Op.like]: `%${id}%` } } : undefined;
+    const condition = id ? { id: { [Op.like]: `%${id}%` } } : undefined;
     const users = await User.findAll({ where: condition });
     res.send(users);
   } catch (err) {
@@ -66,13 +64,13 @@ export const findByEmail = async (req, res) => {
 export const update = async (req, res) => {
   try {
     const id = req.params.id;
-    const [updated] = await User.update(req.body, { where: { user_id: id } });
-
+    const [updated] = await User.update(req.body, { where: { id: id } });
     if (updated === 1)
       res.send({ message: "User updated successfully." });
     else
       res.status(404).send({ message: `User not found or no data changed.` });
   } catch (err) {
+    console.error("Error updating user:", err);
     res.status(500).send({ message: "Error updating user." });
   }
 };
@@ -81,8 +79,7 @@ export const update = async (req, res) => {
 export const remove = async (req, res) => {
   try {
     const id = req.params.id;
-    const deleted = await User.destroy({ where: { user_id: id } });
-
+    const deleted = await User.destroy({ where: { id: id } });
     if (deleted)
       res.send({ message: "User deleted successfully." });
     else

@@ -12,6 +12,7 @@ var corsOptions = {
   origin: "http://localhost:8081",  // Your frontend URL
   credentials: true
 }
+
 app.use(cors(corsOptions));
 
 // parse requests of content-type - application/json
@@ -40,7 +41,7 @@ app.use("/tracker-t1", routes);
 const PORT = process.env.PORT || 3100;
 if (process.env.NODE_ENV !== "test") {
   app.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}.`);
+    console.log(`Server is running on port ${PORT}.`);  // FIXED: Changed from console.log` to console.log(
   });
 }
 

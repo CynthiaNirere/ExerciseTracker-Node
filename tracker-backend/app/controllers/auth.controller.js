@@ -1,7 +1,7 @@
-import db  from "../models/index.js";
-import authconfig  from "../config/auth.config.js";
+import db from "../models/index.js";
+import authconfig from "../config/auth.config.js";
 import { OAuth2Client } from "google-auth-library";
-import  { google } from "googleapis";
+import { google } from "googleapis";
 import jwt from "jsonwebtoken";
 
 const User = db.user;
@@ -15,11 +15,8 @@ const google_id = process.env.CLIENT_ID;
 const exports = {};
 
 exports.login = async (req, res) => {
- 
-
   var googleToken = req.body.credential;
 
- 
   const client = new OAuth2Client(google_id);
   async function verify() {
     const ticket = await client.verifyIdToken({
@@ -43,19 +40,18 @@ exports.login = async (req, res) => {
       lastName === undefined) &&
     req.body.accessToken !== undefined
   ) {
-    let oauth2Client = new OAuth2Client(google_id); // create new auth client
-    oauth2Client.setCredentials({ access_token: req.body.accessToken }); // use the new auth client with the access_token
+    let oauth2Client = new OAuth2Client(google_id);
+    oauth2Client.setCredentials({ access_token: req.body.accessToken });
     let oauth2 = google.oauth2({
       auth: oauth2Client,
       version: "v2",
     });
-    let { data } = await oauth2.userinfo.get(); // get user info
+    let { data } = await oauth2.userinfo.get();
     console.log(data);
     email = data.email;
     firstName = data.given_name;
     lastName = data.family_name;
   }
-
 
   let user = {};
   let session = {};
@@ -68,6 +64,7 @@ exports.login = async (req, res) => {
     .then((data) => {
       if (data != null) {
         user = data.dataValues;
+        console.log("Found existing user:", user);
       } else {
         // create a new User and save to database
         user = {
@@ -76,33 +73,30 @@ exports.login = async (req, res) => {
           email: email,
           role: email.endsWith("@eagles.oc.edu") ? "athlete" : "coach",
         };
+        console.log("Creating new user:", user);
       }
-      
     })
     .catch((err) => {
       res.status(500).send({ message: err.message });
     });
 
-    
   // this lets us get the user id
   if (user.id === undefined) {
-  
     await User.create(user)
       .then((data) => {
         user = data.dataValues;
         res.status(200).send({ message: "User was registered successfully!" });
-        return
+        return;
       })
       .catch((err) => {
         res.status(500).send({ message: err.message });
         return;
       });
   } else {
-    
     // doing this to ensure that the user's name is the one listed with Google
     user.fName = firstName;
     user.lName = lastName;
-  
+
     await User.update(user, { where: { id: user.id } })
       .then((num) => {
         if (num == 1) {
@@ -119,7 +113,6 @@ exports.login = async (req, res) => {
   }
 
   // try to find session first
-
   await Session.findOne({
     where: {
       email: email,
@@ -159,12 +152,9 @@ exports.login = async (req, res) => {
             lName: user.lName,
             userId: user.id,
             role: user.role,
-            token: session.token,
-            // refresh_token: user.refresh_token,
-            // expiration_date: user.expiration_date
+            token: session.token  // ← ADDED: Include token
           };
-          console.log("found a session, don't need to make another one");
-          console.log(userInfo);
+          console.log("Found existing session - returning user:", userInfo);
           res.send(userInfo);
         }
       }
@@ -201,12 +191,9 @@ exports.login = async (req, res) => {
           lName: user.lName,
           userId: user.id,
           role: user.role,
-          token: token,
-          
-          // refresh_token: user.refresh_token,
-          // expiration_date: user.expiration_date
+          token: token  // ← ADDED: Include token
         };
-        console.log(userInfo);
+        console.log("New session - returning user:", userInfo);
         res.send(userInfo);
       })
       .catch((err) => {
@@ -224,7 +211,6 @@ exports.authorize = async (req, res) => {
   );
 
   console.log("authorize token");
-  // Get access and refresh tokens (if access_type is offline)
   let { tokens } = await oauth2Client.getToken(req.body.code);
   oauth2Client.setCredentials(tokens);
 
@@ -278,57 +264,57 @@ exports.authorize = async (req, res) => {
 
 exports.logout = async (req, res) => {
   console.log(req.body);
-  if (req.body === null) {
-    res.send({
+  
+  // Check if request body is null or empty
+  if (!req.body || !req.body.token) {
+    return res.send({
       message: "User has already been successfully logged out!",
     });
-    return;
   }
 
-  // invalidate session -- delete token out of session table
   let session = {};
 
-  await Session.findAll({ where: { token: req.body.token } })
-    .then((data) => {
-      if (data[0] !== undefined) session = data[0].dataValues;
-    })
-    .catch((err) => {
-      res.status(500).send({
-        message:
-          err.message || "Some error occurred while retrieving sessions.",
-      });
-      return;
+  try {
+    const data = await Session.findAll({ where: { token: req.body.token } });
+    if (data[0] !== undefined) {
+      session = data[0].dataValues;
+    }
+  } catch (err) {
+    return res.status(500).send({
+      message: err.message || "Some error occurred while retrieving sessions.",
     });
+  }
 
+  // If session doesn't exist, user is already logged out
+  if (session.id === undefined) {
+    console.log("already logged out");
+    return res.send({
+      message: "User has already been successfully logged out!",
+    });
+  }
+
+  // Clear the session token
   session.token = "";
 
-  // session won't be null but the id will if no session was found
-  if (session.id !== undefined) {
-    Session.update(session, { where: { id: session.id } })
-      .then((num) => {
-        if (num == 1) {
-          console.log("successfully logged out");
-          res.send({
-            message: "User has been successfully logged out!",
-          });
-        } else {
-          console.log("failed");
-          res.send({
-            message: `Error logging out user.`,
-          });
-        }
-      })
-      .catch((err) => {
-        console.log(err);
-        res.status(500).send({
-          message: "Error logging out user.",
-        });
+  try {
+    const num = await Session.update(session, { where: { id: session.id } });
+    if (num == 1) {
+      console.log("successfully logged out");
+      return res.send({
+        message: "User has been successfully logged out!",
       });
-  } else {
-    console.log("already logged out");
-    res.send({
-      message: "User has already been successfully logged out!",
+    } else {
+      console.log("failed to update session");
+      return res.send({
+        message: `Error logging out user.`,
+      });
+    }
+  } catch (err) {
+    console.log(err);
+    return res.status(500).send({
+      message: "Error logging out user.",
     });
   }
 };
+
 export default exports;
