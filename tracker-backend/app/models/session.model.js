@@ -18,14 +18,14 @@ const Session = SequelizeInstance.define("sessions", {
   expirationDate: {
     type: Sequelize.DATE,
     allowNull: false,
+    field: 'expirationDate'  // Keep camelCase if that's what's in DB
   },
   userId: {  
     type: Sequelize.INTEGER,
     allowNull: true,
+    field: 'user_id'  // ← ADD THIS: Map to snake_case in database
   }
- 
 }, {
-
   timestamps: false,  
   tableName: 'sessions'
 });
