@@ -7,15 +7,17 @@ import User from "./user.model.js";
 import Session from "./session.model.js";
 import Tutorial from "./tutorial.model.js";
 import Lesson from "./lesson.model.js";
+import exerciseModel from "./exercise.model.js";
 
 // Initialize db object
 const db = {
   Sequelize: Sequelize,
-  sequelize: sequelize, // use the imported instance
+  sequelize: sequelize,
   user: User,
   session: Session,
   tutorial: Tutorial,
   lesson: Lesson,
+  exercise: exerciseModel(sequelize, Sequelize),
 };
 
 // Define relationships
