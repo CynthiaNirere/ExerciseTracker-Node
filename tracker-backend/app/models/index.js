@@ -8,6 +8,8 @@ import Session from "./session.model.js";
 import Tutorial from "./tutorial.model.js";
 import Lesson from "./lesson.model.js";
 import exerciseModel from "./exercise.model.js";
+import planModel from "./plan.model.js";
+import planExerciseModel from "./plan_exercise.model.js";
 
 // Initialize db object
 const db = {
@@ -18,6 +20,8 @@ const db = {
   tutorial: Tutorial,
   lesson: Lesson,
   exercise: exerciseModel(sequelize, Sequelize),
+  plan: planModel(sequelize, Sequelize),
+  planExercise: planExerciseModel(sequelize, Sequelize),
 };
 
 // Define relationships
@@ -29,6 +33,19 @@ db.user.hasMany(db.session, {
 db.session.belongsTo(db.user, {
   foreignKey: "userId",
   targetKey: "user_id",
+});
+
+// Plan relationships
+db.plan.belongsToMany(db.exercise, {
+  through: db.planExercise,
+  foreignKey: 'plan_id',
+  otherKey: 'exercise_id'
+});
+
+db.exercise.belongsToMany(db.plan, {
+  through: db.planExercise,
+  foreignKey: 'exercise_id',
+  otherKey: 'plan_id'
 });
 
 // Export db

@@ -30,8 +30,17 @@ app.use("/tracker-t1", routes);
 
 
 // set port, listen for requests
-const PORT = process.env.PORT || 3100;
+const PORT = process.env.PORT || 3021;
 if (process.env.NODE_ENV !== "test") {
+
+  db.sequelize.sync({ alter: true })
+    .then(() => {
+      console.log("✅ Database synced - plans tables created");
+    })
+    .catch(err => {
+      console.error("❌ Error syncing database:", err);
+    });
+  
   app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}.`);
   });

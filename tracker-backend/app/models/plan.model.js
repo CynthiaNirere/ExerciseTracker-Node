@@ -1,6 +1,6 @@
-const exerciseModel = (sequelize, Sequelize) => {
-  const Exercise = sequelize.define("exercises", {
-    exercise_id: {
+const planModel = (sequelize, Sequelize) => {
+  const Plan = sequelize.define("plans", {
+    plan_id: {
       type: Sequelize.INTEGER,
       autoIncrement: true,
       primaryKey: true,
@@ -12,15 +12,12 @@ const exerciseModel = (sequelize, Sequelize) => {
     description: {
       type: Sequelize.TEXT,
     },
-    category: {  // ✅ Add this field
-      type: Sequelize.STRING,
-      defaultValue: 'Strength'
-    },
-    muscle_group: {
+    duration: {
       type: Sequelize.STRING,
     },
-    equipment_needed: {
-      type: Sequelize.STRING,
+    assigned_athlete_id: {
+      type: Sequelize.INTEGER,
+      allowNull: true,
     },
     created_by: {
       type: Sequelize.INTEGER,
@@ -31,10 +28,10 @@ const exerciseModel = (sequelize, Sequelize) => {
     }
   }, {
     timestamps: false,
-    tableName: 'exercises'
+    tableName: 'plans'
   });
   
-  return Exercise;
+  return Plan;
 };
 
-export default exerciseModel;
+export default planModel;
