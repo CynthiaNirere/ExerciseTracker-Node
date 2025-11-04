@@ -2,15 +2,10 @@ import { DataTypes } from "sequelize";
 import sequelize from "../config/sequelizeInstance.js";
 
 const ExercisePlanItem = sequelize.define("ExercisePlanItem", {
-    id: {
-      type: DataTypes.INTEGER,
-      autoIncrement: true,
-      primaryKey: true,
-      field: 'id'
-    },
     plan_id: {
       type: DataTypes.INTEGER,
       allowNull: false,
+      primaryKey: true,
       references: {
         model: 'exercise_plans',
         key: 'plan_id'
@@ -19,17 +14,10 @@ const ExercisePlanItem = sequelize.define("ExercisePlanItem", {
     exercise_id: {
       type: DataTypes.INTEGER,
       allowNull: false,
+      primaryKey: true,
       references: {
         model: 'exercises',
         key: 'exercise_id'
-      }
-    },
-    day_of_week: {
-      type: DataTypes.INTEGER,
-      allowNull: false,
-      validate: {
-        min: 1,
-        max: 7
       }
     },
     sets: {
@@ -40,7 +28,12 @@ const ExercisePlanItem = sequelize.define("ExercisePlanItem", {
     reps: {
       type: DataTypes.STRING(50),
       allowNull: false,
-      defaultValue: '8-12'
+      defaultValue: '10'
+    },
+    weight: {
+      type: DataTypes.DECIMAL(10, 2),  // NEW: Weight field
+      allowNull: true,
+      defaultValue: 0
     },
     duration: {
       type: DataTypes.INTEGER, // in minutes
@@ -50,11 +43,23 @@ const ExercisePlanItem = sequelize.define("ExercisePlanItem", {
       type: DataTypes.INTEGER,
       allowNull: false,
       defaultValue: 0
+    },
+    created_at: {
+      type: DataTypes.DATE,
+      allowNull: false,
+      defaultValue: DataTypes.NOW
+    },
+    updated_at: {
+      type: DataTypes.DATE,
+      allowNull: false,
+      defaultValue: DataTypes.NOW
     }
   }, {
     tableName: 'exercise_plan_items',
-    timestamps: false,
-    underscored: true
+    timestamps: true,
+    underscored: true,
+    createdAt: 'created_at',
+    updatedAt: 'updated_at'
   });
 
 export default ExercisePlanItem;

@@ -4,7 +4,6 @@
   var router = Router()
 
 
-
   // Login
   router.post("/login", auth.login);
 
