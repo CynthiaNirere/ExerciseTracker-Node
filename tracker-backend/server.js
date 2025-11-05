@@ -32,11 +32,11 @@ app.get("/", (req, res) => {
 });
 
 // Load the routes from the routes folder
-// This makes all your routes accessible at: http://localhost:3100/tracker-t1/*
+// This makes all your routes accessible at: http://localhost:3021/tracker-t1/*
 app.use("/tracker-t1", routes); 
 
 // set port, listen for requests
-const PORT = process.env.PORT || 3100;
+const PORT = process.env.PORT || 3021;
 if (process.env.NODE_ENV !== "test") {
   app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}.`);  // ✓ Fixed
