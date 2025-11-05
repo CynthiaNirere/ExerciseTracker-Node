@@ -10,18 +10,23 @@ import Lesson from "./lesson.model.js";
 import exerciseModel from "./exercise.model.js";
 import planModel from "./plan.model.js";
 import planExerciseModel from "./plan_exercise.model.js";
+import goalModel from "./goal.model.js";  // ADD THIS
 
 // Initialize db object
 const db = {
   Sequelize: Sequelize,
   sequelize: sequelize,
+  users: User,
   user: User,
   session: Session,
   tutorial: Tutorial,
   lesson: Lesson,
+  exercises: exerciseModel(sequelize, Sequelize),
   exercise: exerciseModel(sequelize, Sequelize),
   plan: planModel(sequelize, Sequelize),
   planExercise: planExerciseModel(sequelize, Sequelize),
+  goals: goalModel(sequelize, Sequelize),  // ADD THIS
+  goal: goalModel(sequelize, Sequelize),   // ADD THIS
 };
 
 // Define relationships
@@ -46,6 +51,17 @@ db.exercise.belongsToMany(db.plan, {
   through: db.planExercise,
   foreignKey: 'exercise_id',
   otherKey: 'plan_id'
+});
+
+// Goal relationships - ADD THIS
+db.user.hasMany(db.goal, {
+  foreignKey: 'user_id',
+  sourceKey: 'user_id'
+});
+
+db.goal.belongsTo(db.user, {
+  foreignKey: 'user_id',
+  targetKey: 'user_id'
 });
 
 // Export db

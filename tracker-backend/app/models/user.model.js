@@ -28,6 +28,30 @@ const User = SequelizeInstance.define("users", {
     defaultValue: 'athlete',
     allowNull: false,
   },
+  age: {
+    type: Sequelize.INTEGER,
+    allowNull: true,
+  },
+  height: {
+    type: Sequelize.STRING(50),
+    allowNull: true,
+  },
+  weight: {
+    type: Sequelize.STRING(50),
+    allowNull: true,
+  },
+  bio: {
+    type: Sequelize.TEXT,
+    allowNull: true,
+  },
+  training_goals: {
+    type: Sequelize.TEXT,
+    allowNull: true,
+  },
+  injuries: {
+    type: Sequelize.TEXT,
+    allowNull: true,
+  },
   created_at: {
     type: Sequelize.DATE,
     allowNull: false,
