@@ -14,8 +14,13 @@ export const getAllExercises = async (req, res) => {
       order: [['name', 'ASC']]
     });
     
-    console.log(`Found ${exercises.length} exercises`);
-    res.send(exercises);
+    // Convert Sequelize instances to plain objects
+    const plainExercises = exercises.map(ex => ex.toJSON());
+    
+    console.log(`Found ${plainExercises.length} exercises`);
+    console.log('First exercise:', plainExercises[0]);
+    
+    res.send(plainExercises);
   } catch (err) {
     console.error("Error fetching exercises:", err);
     res.status(500).send({
@@ -24,7 +29,6 @@ export const getAllExercises = async (req, res) => {
     });
   }
 };
-
 // Get single exercise by ID
 export const getExerciseById = async (req, res) => {
   try {
@@ -235,5 +239,137 @@ export const getStatistics = async (req, res) => {
   } catch (err) {
     console.error("Error fetching statistics:", err);
     res.status(500).send({ message: "Error fetching statistics." });
+  }
+};
+
+// ========================================
+// EXERCISE CRUD (Admin Management)
+// ========================================
+
+// Create a new exercise
+export const createExercise = async (req, res) => {
+  try {
+    const exercise = await Exercise.create({
+      name: req.body.name,
+      category: req.body.category || null,
+      description: req.body.description || null,
+      instructions: req.body.instructions || null,
+      difficulty: req.body.difficulty || null,
+      muscleGroup: req.body.muscleGroups || req.body.muscleGroup || null,
+      equipmentNeeded: req.body.equipment || req.body.equipmentNeeded || null,
+      createdBy: req.user?.userId || 1
+    });
+    
+    res.status(201).send(exercise);
+  } catch (err) {
+    console.error("Error creating exercise:", err);
+    res.status(500).send({
+      message: "Error creating exercise.",
+      error: err.message
+    });
+  }
+};
+
+// Update an exercise
+export const updateExercise = async (req, res) => {
+  try {
+    const id = req.params.id;
+    
+    console.log('Updating exercise ID:', id);
+    console.log('Update data:', req.body);
+    
+    const updateData = {
+      name: req.body.name,
+      category: req.body.category,
+      description: req.body.description,
+      instructions: req.body.instructions,
+      difficulty: req.body.difficulty,
+      muscleGroup: req.body.muscleGroups || req.body.muscleGroup,
+      equipmentNeeded: req.body.equipment || req.body.equipmentNeeded
+    };
+    
+    const [updated] = await Exercise.update(updateData, {
+      where: { id: id }
+    });
+    
+    if (updated === 1) {
+      const exercise = await Exercise.findByPk(id, { raw: true });
+      
+      // Map the response to camelCase
+      const mappedExercise = {
+        id: exercise.exercise_id,
+        name: exercise.name,
+        category: exercise.category,
+        description: exercise.description,
+        instructions: exercise.instructions,
+        difficulty: exercise.difficulty,
+        muscleGroup: exercise.muscle_group,
+        equipmentNeeded: exercise.equipment_needed,
+        createdBy: exercise.created_by,
+        createdAt: exercise.created_at
+      };
+      
+      res.send(mappedExercise);
+    } else {
+      res.status(404).send({
+        message: `Exercise not found with id=${id}`
+      });
+    }
+  } catch (err) {
+    console.error("Error updating exercise:", err);
+    res.status(500).send({
+      message: "Error updating exercise."
+    });
+  }
+};
+
+// Delete an exercise
+export const deleteExercise = async (req, res) => {
+  try {
+    const id = req.params.id;
+    
+    // Check if exercise exists first
+    const exercise = await Exercise.findByPk(id);
+    if (!exercise) {
+      return res.status(404).send({ 
+        message: `Exercise not found with id=${id}` 
+      });
+    }
+    
+    console.log(`Deleting exercise ${id} and all related records...`);
+    
+    // Delete related records first (foreign key constraints)
+    // 1. Delete from exercise_plan_items (if you have this model)
+    if (db.exercisePlanItem) {
+      await db.exercisePlanItem.destroy({ 
+        where: { exercise_id: id } 
+      });
+      console.log('Deleted exercise plan items');
+    }
+    
+    // 2. Delete from exercise_results
+    await ExerciseResult.destroy({ 
+      where: { exerciseId: id } 
+    });
+    console.log('Deleted exercise results');
+    
+    // 3. Now delete the exercise
+    const deleted = await Exercise.destroy({ where: { id: id } });
+    
+    if (deleted) {
+      console.log('Exercise deleted successfully');
+      return res.send({ message: "Exercise deleted successfully." });
+    }
+    
+    return res.status(404).send({ 
+      message: `Exercise not found with id=${id}` 
+    });
+    
+  } catch (err) {
+    console.error('Error deleting exercise:', err);
+    console.error('Error message:', err.message);
+    res.status(500).send({ 
+      message: err.message || "Error deleting exercise." 
+    });
   }
 };

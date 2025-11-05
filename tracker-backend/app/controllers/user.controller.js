@@ -79,12 +79,47 @@ export const update = async (req, res) => {
 export const remove = async (req, res) => {
   try {
     const id = req.params.id;
+    
+    // Check if user exists first
+    const user = await User.findByPk(id);
+    if (!user) {
+      return res.status(404).send({ message: `User not found.` });
+    }
+    
+    console.log(`Deleting user ${id} and all related records...`);
+    
+    // Delete related records first (foreign key constraints)
+    // 1. Delete athlete profile
+    await db.athleteProfile.destroy({ where: { athlete_id: id } });
+    console.log('Deleted athlete profile');
+    
+    // 2. Delete goals
+    await db.goal.destroy({ where: { athlete_id: id } });
+    console.log('Deleted goals');
+    
+    // 3. Delete exercise results
+    await db.exerciseResult.destroy({ where: { athlete_id: id } });
+    console.log('Deleted exercise results');
+    
+    // 4. Delete sessions
+    await db.session.destroy({ where: { user_id: id } });
+    console.log('Deleted sessions');
+    
+    // 5. Now delete the user
     const deleted = await User.destroy({ where: { id: id } });
-    if (deleted)
-      res.send({ message: "User deleted successfully." });
-    else
-      res.status(404).send({ message: `User not found.` });
+    
+    if (deleted) {
+      console.log('User deleted successfully');
+      return res.send({ message: "User deleted successfully." });
+    }
+    
+    return res.status(404).send({ message: `User not found.` });
+    
   } catch (err) {
-    res.status(500).send({ message: "Error deleting user." });
+    console.error('Error deleting user:', err);
+    console.error('Error message:', err.message);
+    res.status(500).send({ 
+      message: err.message || "Error deleting user." 
+    });
   }
 };

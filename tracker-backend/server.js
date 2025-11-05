@@ -4,7 +4,6 @@ import cors from "cors";
 import db from "./app/models/index.js";
 
 db.sequelize.sync();
-
 const app = express();
 
 // CORS configuration - allow frontend to access backend
@@ -12,7 +11,6 @@ var corsOptions = {
   origin: "http://localhost:8081",  // Your frontend URL
   credentials: true
 }
-
 app.use(cors(corsOptions));
 
 // parse requests of content-type - application/json
@@ -41,7 +39,7 @@ app.use("/tracker-t1", routes);
 const PORT = process.env.PORT || 3100;
 if (process.env.NODE_ENV !== "test") {
   app.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}.`);  // FIXED: Changed from console.log` to console.log(
+    console.log(`Server is running on port ${PORT}.`);  // ✓ Fixed
   });
 }
 
