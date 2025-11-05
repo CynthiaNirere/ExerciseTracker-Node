@@ -13,7 +13,7 @@ router.get("/coach/:coachId/athletes", AthleteController.getCoachAthletes);
 router.get("/athletes/:id", AthleteController.getAthleteById);
 
 // Get athlete's goals
-router.get("/athletes/:id/goals", AthleteController.getAthleteGoals);
+//router.get("/athletes/:id/goals", AthleteController.getAthleteGoals);
 
 // Get athlete's workout results
 router.get("/athletes/:id/results", AthleteController.getAthleteResults);

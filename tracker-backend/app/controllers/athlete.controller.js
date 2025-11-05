@@ -32,7 +32,7 @@ exports.createAthlete = async (req, res) => {
       first_name: req.body.first_name,
       last_name: req.body.last_name,
       email: req.body.email,
-      password_hash: req.body.password || 'default123', // You should hash this in production
+      password_hash: req.body.password || 'default123',
       role: 'athlete',
       age: req.body.age || null,
       height: req.body.height || null,
@@ -84,7 +84,7 @@ exports.getAthleteById = async (req, res) => {
     }
 
     const totalWorkouts = await Exercise.count({
-      where: { created_by: athleteId }  // ← CHANGED from user_id to created_by
+      where: { created_by: athleteId }
     });
 
     res.status(200).json({
@@ -107,19 +107,7 @@ exports.getAthleteById = async (req, res) => {
   }
 };
 
-// Get athlete's goals
-exports.getAthleteGoals = async (req, res) => {
-  try {
-    const athleteId = req.params.id;
-    
-    // TODO: Fetch goals from your goals table when you create it
-    res.status(200).json([]);
-    
-  } catch (error) {
-    console.error('Error fetching athlete goals:', error);
-    res.status(500).json({ message: 'Error fetching goals', error: error.message });
-  }
-};
+// REMOVED getAthleteGoals - now handled by goal.controller.js
 
 // Get athlete's workout results
 exports.getAthleteResults = async (req, res) => {
@@ -127,17 +115,17 @@ exports.getAthleteResults = async (req, res) => {
     const athleteId = req.params.id;
     
     const results = await Exercise.findAll({
-      where: { created_by: athleteId },  // ← CHANGED from user_id to created_by
-      order: [['created_at', 'DESC']]     // ← CHANGED from date to created_at
+      where: { created_by: athleteId },
+      order: [['created_at', 'DESC']]
     });
 
     const formattedResults = results.map(result => ({
-      id: result.exercise_id,              // ← CHANGED from id to exercise_id
-      date: result.created_at,             // ← CHANGED from date to created_at
-      exercise: result.name,               // ← CHANGED from exercise to name
+      id: result.exercise_id,
+      date: result.created_at,
+      exercise: result.name,
       sets: result.sets || '-',
       bestSet: result.bestSet || '-',
-      notes: result.description || ''      // ← CHANGED from notes to description
+      notes: result.description || ''
     }));
 
     res.status(200).json(formattedResults);
@@ -165,7 +153,7 @@ exports.getCoachAthletes = async (req, res) => {
     const athletesWithWorkouts = await Promise.all(
       athletes.map(async (athlete) => {
         const totalWorkouts = await Exercise.count({
-          where: { created_by: athlete.user_id }  // ← CHANGED from user_id to created_by
+          where: { created_by: athlete.user_id }
         });
         
         return {

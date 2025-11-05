@@ -63,13 +63,25 @@ exports.getAthleteGoals = async (req, res) => {
     const athleteId = req.params.athleteId;
     
     console.log('📊 Fetching goals for athlete:', athleteId);
+    console.log('📊 Type of athleteId:', typeof athleteId);
+    console.log('📊 Parsed athleteId:', parseInt(athleteId));
 
+    // Try to get ALL goals first to see what's in the database
+    const allGoals = await Goal.findAll({
+      raw: true
+    });
+    
+    console.log('📊 ALL goals in database:', JSON.stringify(allGoals, null, 2));
+
+    // Now try to get goals for this specific athlete
     const goals = await Goal.findAll({
-      where: { user_id: athleteId },
-      order: [['created_at', 'DESC']]
+      where: { user_id: parseInt(athleteId) },
+      order: [['created_at', 'DESC']],
+      raw: true
     });
 
-    console.log('✅ Found', goals.length, 'goals');
+    console.log('✅ Found', goals.length, 'goals for athlete', athleteId);
+    console.log('✅ Goals:', JSON.stringify(goals, null, 2));
 
     // Format goals with progress calculation
     const formattedGoals = goals.map(goal => {
@@ -88,10 +100,13 @@ exports.getAthleteGoals = async (req, res) => {
       };
     });
 
+    console.log('✅ Formatted goals:', JSON.stringify(formattedGoals, null, 2));
+
     res.status(200).json(formattedGoals);
 
   } catch (error) {
     console.error('❌ Error fetching goals:', error);
+    console.error('❌ Error stack:', error.stack);
     res.status(500).json({ message: 'Error fetching goals', error: error.message });
   }
 };

@@ -1,7 +1,7 @@
-import { Router } from "express";
 import GoalController from "../controllers/goal.controller.js";
+import { Router } from "express";
 
-const router = Router();
+var router = Router();
 
 // Create a new goal
 router.post("/goals", GoalController.createGoal);
@@ -16,4 +16,3 @@ router.put("/goals/:id", GoalController.updateGoal);
 router.delete("/goals/:id", GoalController.deleteGoal);
 
 export default router;
-
