@@ -1,45 +1,100 @@
 import routes from "./app/routes/index.js";
-import express, { json, urlencoded } from "express"
+import express from "express";
 import cors from "cors";
 import db from "./app/models/index.js";
 
+// Sync database
 db.sequelize.sync();
+
 const app = express();
 
-// CORS configuration - allow frontend to access backend
-var corsOptions = {
-  origin: "http://localhost:8081",  // Your frontend URL
-  credentials: true
-}
+// ========================================
+// CORS Configuration
+// ========================================
+const corsOptions = {
+  origin: [
+    "http://localhost:8081",  // Your frontend URL (Vite default)
+  ],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ["Content-Type", "Authorization", "x-requested-with"], // allow that header
+  credentials: true,
+};
+
 app.use(cors(corsOptions));
 
-// parse requests of content-type - application/json
+// ========================================
+// Body Parsers
+// ========================================
 app.use(express.json());
-
-// parse requests of content-type - application/x-www-form-urlencoded
 app.use(express.urlencoded({ extended: true }));
 
-// ROOT ROUTE - shows API is working
+// ========================================
+// Request Logging Middleware (Optional but helpful)
+// ========================================
+app.use((req, res, next) => {
+  console.log(`${req.method} ${req.path}`);
+  next();
+});
+
+// ========================================
+// ROOT ROUTE - API Health Check
+// ========================================
 app.get("/", (req, res) => {
   res.json({ 
     message: "Exercise Tracker API is running!",
     version: "1.0.0",
+    timestamp: new Date().toISOString(),
     endpoints: {
       api: "/tracker-t1",
-      test: "/tracker-t1/test"
+      auth: "/tracker-t1/api/auth",
+      users: "/tracker-t1/api/users",
+      athletes: "/tracker-t1/api/athletes",
+      coaches: "/tracker-t1/api/coach",
+      exercises: "/tracker-t1/api/exercises",
+      plans: "/tracker-t1/api/exercise-plans",
+      goals: "/tracker-t1/api/goals"
     }
   });
 });
 
-// Load the routes from the routes folder
-// This makes all your routes accessible at: http://localhost:3021/tracker-t1/*
-app.use("/tracker-t1", routes); 
+// ========================================
+// API Routes
+// ========================================
+// All routes are loaded from /app/routes/index.js
+app.use("/tracker-t1/api", routes);
 
-// set port, listen for requests
-const PORT = process.env.PORT || 3021;
+// ========================================
+// 404 Handler
+// ========================================
+app.use((req, res) => {
+  res.status(404).json({
+    message: "Route not found",
+    path: req.path,
+    method: req.method
+  });
+});
+
+// ========================================
+// Error Handler
+// ========================================
+app.use((err, req, res, next) => {
+  console.error("❌ Server Error:", err);
+  res.status(err.status || 500).json({
+    message: err.message || "Internal Server Error",
+    error: process.env.NODE_ENV === 'development' ? err.stack : undefined
+  });
+});
+
+// ========================================
+// Start Server
+// ========================================
+const PORT = process.env.PORT || 3021; // Changed to match your port
+
 if (process.env.NODE_ENV !== "test") {
   app.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}.`);  // ✓ Fixed
+    console.log(` Server is running on port ${PORT}`);
+    console.log(` API available at: http://localhost:${PORT}/tracker-t1/api`);
+    console.log(` Health check: http://localhost:${PORT}/`);
   });
 }
 

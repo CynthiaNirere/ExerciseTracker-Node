@@ -13,6 +13,15 @@ const AthleteProfile = sequelize.define(
         key: 'user_id'
       }
     },
+    coachId: {                    // ← ADD THIS
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      field: 'coach_id',
+      references: {
+        model: 'users',
+        key: 'user_id'
+      }
+    },
     age: {
       type: DataTypes.INTEGER,
       allowNull: true,
