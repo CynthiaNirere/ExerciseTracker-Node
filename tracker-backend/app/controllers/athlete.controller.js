@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 import db from "../models/index.js";
 
 const AthleteProfile = db.athleteProfile;
@@ -271,5 +270,3 @@ export const getProgress = async (req, res) => {
     res.status(500).json({ message: "Error fetching progress", error: error.message });
   }
 };
-
-export default exports;

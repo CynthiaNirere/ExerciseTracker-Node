@@ -1,9 +1,6 @@
 import db from "../models/index.js";
 import authconfig from "../config/auth.config.js";
-import db from "../models/index.js";
-import authconfig from "../config/auth.config.js";
 import { OAuth2Client } from "google-auth-library";
-import { google } from "googleapis";
 import { google } from "googleapis";
 import jwt from "jsonwebtoken";
 
@@ -27,11 +24,13 @@ exports.login = async (req, res) => {
       audience: google_id,
     });
     googleUser = ticket.getPayload();
-    console.log("Google payload:", googleUser.email);
+    console.log("Google payload is " + JSON.stringify(googleUser));
+  }
+  await verify().catch(console.error);
 
-    let email = googleUser.email;
-    let firstName = googleUser.given_name;
-    let lastName = googleUser.family_name;
+  let email = googleUser.email;
+  let firstName = googleUser.given_name;
+  let lastName = googleUser.family_name;
 
   // if we don't have their email or name, we need to make another request
   // this is solely for testing purposes
@@ -172,14 +171,12 @@ exports.login = async (req, res) => {
     let token = jwt.sign({ id: email }, authconfig.secret, {
       expiresIn: 86400,
     });
-    
     let tempExpirationDate = new Date();
     tempExpirationDate.setDate(tempExpirationDate.getDate() + 1);
-    
-    await Session.create({
+    const session = {
       token: token,
       email: email,
-      userId: userData.user_id,
+      userId: user.id,
       expirationDate: tempExpirationDate,
     };
 
@@ -206,52 +203,63 @@ exports.login = async (req, res) => {
 };
 
 exports.authorize = async (req, res) => {
-  try {
-    console.log("authorize client");
-    const oauth2Client = new google.auth.OAuth2(
-      process.env.CLIENT_ID,
-      process.env.CLIENT_SECRET,
-      "postmessage"
-    );
+  console.log("authorize client");
+  const oauth2Client = new google.auth.OAuth2(
+    process.env.CLIENT_ID,
+    process.env.CLIENT_SECRET,
+    "postmessage"
+  );
 
   console.log("authorize token");
   let { tokens } = await oauth2Client.getToken(req.body.code);
   oauth2Client.setCredentials(tokens);
 
-    let user = await User.findOne({
-      where: {
-        user_id: req.params.id,
-      },
+  let user = {};
+  console.log("findUser");
+
+  await User.findOne({
+    where: {
+      id: req.params.id,
+    },
+  })
+    .then((data) => {
+      if (data != null) {
+        user = data.dataValues;
+      }
+    })
+    .catch((err) => {
+      res.status(500).send({ message: err.message });
+      return;
+    });
+  console.log("user");
+  console.log(user);
+  user.refresh_token = tokens.refresh_token;
+  let tempExpirationDate = new Date();
+  tempExpirationDate.setDate(tempExpirationDate.getDate() + 100);
+  user.expiration_date = tempExpirationDate;
+
+  await User.update(user, { where: { id: user.id } })
+    .then((num) => {
+      if (num == 1) {
+        console.log("updated user's google token stuff");
+      } else {
+        console.log(
+          `Cannot update User with id=${user.id}. Maybe User was not found or req.body is empty!`
+        );
+      }
+      let userInfo = {
+        refresh_token: user.refresh_token,
+        expiration_date: user.expiration_date,
+      };
+      console.log(userInfo);
+      res.send(userInfo);
+    })
+    .catch((err) => {
+      res.status(500).send({ message: err.message });
     });
 
-    if (!user) {
-      return res.status(404).send({ message: "User not found" });
-    }
-
-    const userData = user.dataValues || user;
-    
-    let tempExpirationDate = new Date();
-    tempExpirationDate.setDate(tempExpirationDate.getDate() + 100);
-
-    await User.update(
-      {
-        refresh_token: tokens.refresh_token,
-        expiration_date: tempExpirationDate
-      },
-      { where: { user_id: userData.user_id } }
-    );
-
-    let userInfo = {
-      refresh_token: tokens.refresh_token,
-      expiration_date: tempExpirationDate,
-    };
-    
-    return res.send(userInfo);
-    
-  } catch (error) {
-    console.error("Authorize error:", error);
-    return res.status(500).send({ message: error.message });
-  }
+  console.log(tokens);
+  console.log(oauth2Client);
 };
 
 exports.logout = async (req, res) => {
