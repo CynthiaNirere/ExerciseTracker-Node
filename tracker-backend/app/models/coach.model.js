@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import { DataTypes } from "sequelize";
 import sequelize from "../config/sequelizeInstance.js";
 
@@ -28,5 +29,28 @@ const Coach = sequelize.define(
     timestamps: false,
   }
 );
+=======
+import Sequelize from "sequelize";
+import SequelizeInstance from "../config/sequelizeInstance.js";
+
+const Coach = SequelizeInstance.define("coach", {
+  userId: {
+    type: Sequelize.INTEGER,
+    allowNull: false,
+  },
+  specialty: {
+    type: Sequelize.STRING,
+    allowNull: true,
+  },
+  bio: {
+    type: Sequelize.TEXT,
+    allowNull: true,
+  },
+  certifications: {
+    type: Sequelize.TEXT,
+    allowNull: true,
+  },
+});
+>>>>>>> cn-addcoachAthletebranch
 
 export default Coach;
