@@ -1,7 +1,9 @@
-name: AWS DEPLOY TO STAGING
-# turn off deploy to AWS
+name: DEPLOY BACKEND TO AWS
 
 on:
+  push:
+    branches:
+      - dev
   pull_request:
     types: [closed]
     branches:
@@ -10,43 +12,36 @@ on:
 jobs:
   aws-deploy:
     runs-on: ubuntu-latest
-    env:
-      DB_HOST: ${{ secrets.AWS_DB_HOST }}
-      DB_PW: ${{ secrets.AWS_DB_PW}}
-      DB_USER: ${{ secrets.AWS_DB_USER }}
-      DB_NAME: ${{ secrets.AWS_DB_NAME }}
-      CLIENT_ID: ${{secrets.CLIENT_ID}}
-      CLIENT_SECRET: ${{secrets.CLIENT_SECRET}}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v4
         with:
           ref: dev
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@v4
         with:
-          node-version: 24
+          node-version: "20"
+      - name: Create production environment file
+        run: |
+          echo "CLIENT_ID=${{ secrets.CLIENT_ID }}" > .env
+          echo "CLIENT_SECRET=${{ secrets.CLIENT_SECRET }}" >> .env
+          echo "DB_HOST=${{ secrets.AWS_DB_HOST }}" >> .env
+          echo "DB_PORT=3306" >> .env
+          echo "DB_USER=${{ secrets.AWS_DB_USER }}" >> .env
+          echo "DB_PW=${{ secrets.AWS_DB_PW }}" >> .env
+          echo "DB_NAME=${{ secrets.AWS_DB_NAME }}" >> .env
+          echo "PORT=3021" >> .env
+          echo "NODE_ENV=production" >> .env
       - run: npm install
-
-      - run: |
-          touch .env
-          echo DB_HOST = "$DB_HOST" >> .env
-          echo DB_PW = "$DB_PW" >> .env
-          echo DB_USER = "$DB_USER" >> .env
-          echo DB_NAME = "$DB_NAME" >> .env
-          echo CLIENT_ID = "$CLIENT_ID" >> .env
-          echo CLIENT_SECRET = "$CLIENT_SECRET" >> .env
-
       - run: npm run bundle
-
       - name: Deploy to Server
-        uses: easingthemes/ssh-deploy@v2.1.1
+        uses: easingthemes/ssh-deploy@main
         env:
           SSH_PRIVATE_KEY: ${{ secrets.SERVER_SSH_KEY }}
           ARGS: "-rltgoDzvO --delete"
           SOURCE: "deploy/"
-          REMOTE_HOST: "project3.eaglesoftwareteam.com"
+          REMOTE_HOST: project3.eaglesoftwareteam.com
           REMOTE_USER: ubuntu
           TARGET: "nodeapps/2025/project3/t1"
-      - name: Execute SSH commmands on remote server
+      - name: Execute SSH commands on remote server
         uses: JimCronqvist/action-ssh@master
         env:
           NAME: "Root"
@@ -56,8 +51,9 @@ jobs:
           debug: false
           command: |
             cd nodeapps/2025/project3/t1
-            npm install
-            sudo systemctl stop tutorial-backend
+            npm install --production
+            sudo systemctl stop tracker-t1-backend || true
             sudo cp tracker-t1-backend.service /lib/systemd/system/tracker-t1-backend.service
             sudo systemctl daemon-reload
-            sudo systemctl start tracker-t1-backend.service
+            sudo systemctl enable tracker-t1-backend.services
+            sudo systemctl start tracker-t1-backend.services
