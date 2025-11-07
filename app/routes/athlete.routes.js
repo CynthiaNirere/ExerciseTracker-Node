@@ -4,7 +4,7 @@ import authenticate from "../authorization/authorization.js";
 
 const router = express.Router();
 
-// Athlete Profile Routes
+// Athlete Profile 
 router.get("/profile", authenticate, athlete.getProfile);
 router.put("/profile", authenticate, athlete.updateProfile);
 
