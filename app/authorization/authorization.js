@@ -1,4 +1,4 @@
-const db = require("../models/index.js");
+import db from "../models/index.js";
 const Session = db.session;
 
 const authenticate = (req, res, next) => {
