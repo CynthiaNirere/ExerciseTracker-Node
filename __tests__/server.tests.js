@@ -1,3 +1,11 @@
+
+import request from "supertest";
+
+let app;
+beforeAll(async () => {
+  app = (await import("../server.js")).default;
+});
+
 describe("server", () => {
   const db = jest.mock("../app/models", () => ({
     sequelize: {
