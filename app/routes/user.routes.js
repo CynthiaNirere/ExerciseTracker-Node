@@ -4,7 +4,7 @@ import authenticate from "../authorization/authorization.js";
 
 const router = express.Router();
 
-// CRUD routes
+// Create Read Update Delete routes for User
 router.post("/", authenticate, users.create);
 router.get("/", authenticate, users.findAll);
 router.get("/:id", authenticate, users.findOne);
