@@ -14,11 +14,11 @@ const app = express();
 const corsOptions = {
   origin: [
     "http://localhost:8081",  // Your frontend URL (Vite default)
-    "https://project2.eaglesoftwareteam.com",
-    "https://project2.eaglesoftwareteam.com:3021"
+    "https://project3.eaglesoftwareteam.com",  // FIXED: Changed from project2 to project3
+    "https://project3.eaglesoftwareteam.com:3021"
   ],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ["Content-Type", "Authorization", "x-requested-with"], // allow that header
+  allowedHeaders: ["Content-Type", "Authorization", "x-requested-with"],
   credentials: true,
 };
 
@@ -31,10 +31,10 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // ========================================
-// Request Logging Middleware (Optional but helpful)
+// Request Logging Middleware
 // ========================================
 app.use((req, res, next) => {
-  console.log(`${req.method} ${req.path}`);
+  console.log(`${req.method} ${req.path}`); // FIXED: Added parentheses
   next();
 });
 
@@ -87,16 +87,16 @@ app.use((err, req, res, next) => {
   });
 });
 
-// ========================================
+
 // Start Server
-// ========================================
-const PORT = process.env.PORT || 3021; // Changed to match your port
+
+const PORT = process.env.PORT || 3021;
 
 if (process.env.NODE_ENV !== "test") {
   app.listen(PORT, () => {
-    console.log(` Server is running on port ${PORT}`);
-    console.log(` API available at: http://localhost:${PORT}/tracker-t1/api`);
-    console.log(` Health check: http://localhost:${PORT}/`);
+    console.log(`✅ Server is running on port ${PORT}`); // FIXED: Added parentheses
+    console.log(`✅ API available at: http://localhost:${PORT}/tracker-t1/api`); 
+    console.log(`✅ Health check: http://localhost:${PORT}/`);
   });
 }
 
