@@ -14,6 +14,8 @@ const app = express();
 const corsOptions = {
   origin: [
     "http://localhost:8081",  // Your frontend URL (Vite default)
+    "https://project2.eaglesoftwareteam.com",
+    "https://project2.eaglesoftwareteam.com:3021"
   ],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ["Content-Type", "Authorization", "x-requested-with"], // allow that header

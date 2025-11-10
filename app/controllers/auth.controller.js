@@ -11,8 +11,55 @@ const Op = db.Sequelize.Op;
 let googleUser = {};
 
 const google_id = process.env.CLIENT_ID;
+const google_secret = process.env.CLIENT_SECRET;
+
+const oauth2Client = new OAuth2Client(
+  google_id,
+  google_secret,
+  'https://project2.eaglesoftwareteam.com/tracker-t1/api/auth/google/callback'
+);
 
 const exports = {};
+
+exports.googleAuth = (req, res) => {
+  const url = oauth2Client.generateAuthUrl({
+    access_type: 'offline',
+    scope: [
+      'https://www.googleapis.com/auth/userinfo.profile',
+      'https://www.googleapis.com/auth/userinfo.email'
+    ]
+  });
+  res.redirect(url);
+};
+
+exports.googleCallback = async (req, res) => {
+  const { code } = req.query;
+  try {
+    const { tokens } = await oauth2Client.getToken(code);
+    oauth2Client.setCredentials(tokens);
+
+    const oauth2 = google.oauth2({
+      auth: oauth2Client,
+      version: 'v2'
+    });
+
+    const { data } = await oauth2.userinfo.get();
+    
+    // Use the user data for login
+    googleUser = {
+      email: data.email,
+      given_name: data.given_name,
+      family_name: data.family_name
+    };
+    
+    // Continue with the existing login logic
+    const user = await handleUserLogin(googleUser);
+    res.redirect('https://project2.eaglesoftwareteam.com/tracker-t1/dashboard');
+  } catch (error) {
+    console.error('Error during Google callback:', error);
+    res.status(500).json({ message: "Error during Google authentication" });
+  }
+};
 
 exports.login = async (req, res) => {
   var googleToken = req.body.credential;
