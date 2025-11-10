@@ -3,7 +3,9 @@
   import { Router } from "express";
   var router = Router()
 
-
+  // Google OAuth routes
+  router.get("/google", auth.googleAuth);
+  router.get("/google/callback", auth.googleCallback);
 
   // Login
   router.post("/login", auth.login);
