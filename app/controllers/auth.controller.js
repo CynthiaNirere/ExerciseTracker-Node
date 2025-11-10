@@ -16,7 +16,7 @@ const google_secret = process.env.CLIENT_SECRET;
 const oauth2Client = new OAuth2Client(
   google_id,
   google_secret,
-  'https://project2.eaglesoftwareteam.com/tracker-t1/api/auth/google/callback'
+  'https://project3.eaglesoftwareteam.com/tracker-t1/api/auth/google/callback'  // FIXED: Changed from project2 to project3
 );
 
 const exports = {};
@@ -54,7 +54,7 @@ exports.googleCallback = async (req, res) => {
     
     // Continue with the existing login logic
     const user = await handleUserLogin(googleUser);
-    res.redirect('https://project2.eaglesoftwareteam.com/tracker-t1/dashboard');
+    res.redirect('https://project3.eaglesoftwareteam.com/tracker-t1/dashboard');  // FIXED: Changed from project2 to project3
   } catch (error) {
     console.error('Error during Google callback:', error);
     res.status(500).json({ message: "Error during Google authentication" });
@@ -199,7 +199,7 @@ exports.login = async (req, res) => {
             lName: user.lName,
             userId: user.id,
             role: user.role,
-            token: session.token  // ← ADDED: Include token
+            token: session.token
           };
           console.log("Found existing session - returning user:", userInfo);
           res.send(userInfo);
@@ -238,7 +238,7 @@ exports.login = async (req, res) => {
           lName: user.lName,
           userId: user.id,
           role: user.role,
-          token: token  // ← ADDED: Include token
+          token: token
         };
         console.log("New session - returning user:", userInfo);
         res.send(userInfo);
