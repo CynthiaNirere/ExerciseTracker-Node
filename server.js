@@ -95,8 +95,6 @@ const PORT = process.env.PORT || 3021;
 if (process.env.NODE_ENV !== "test") {
   app.listen(PORT, () => {
     console.log(`✅ Server is running on port ${PORT}`); // FIXED: Added parentheses
-    console.log(`✅ API available at: http://localhost:${PORT}/tracker-t1/api`); 
-    console.log(`✅ Health check: http://localhost:${PORT}/`);
   });
 }
 

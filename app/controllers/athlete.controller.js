@@ -6,11 +6,7 @@ const ExerciseResult = db.exerciseResult;
 const Exercise = db.exercise;
 const User = db.user;
 
-// ========================================
-// PROFILE ROUTES
-// ========================================
 
-// Get athlete's profile
 export const getProfile = async (req, res) => {
   try {
     const athleteId = req.user.userId;
@@ -61,9 +57,7 @@ export const updateProfile = async (req, res) => {
   }
 };
 
-// ========================================
-// GOALS ROUTES
-// ========================================
+
 
 // Get athlete's goals
 export const getGoals = async (req, res) => {
@@ -153,9 +147,6 @@ export const deleteGoal = async (req, res) => {
   }
 };
 
-// ========================================
-// EXERCISE RESULTS ROUTES
-// ========================================
 
 // Get exercise results
 export const getExerciseResults = async (req, res) => {
@@ -208,10 +199,6 @@ export const recordExerciseResult = async (req, res) => {
     });
   }
 };
-
-// ========================================
-// STATISTICS & PROGRESS ROUTES
-// ========================================
 
 // Get statistics
 export const getStatistics = async (req, res) => {
