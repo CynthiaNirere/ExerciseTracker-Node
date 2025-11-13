@@ -28,7 +28,7 @@ jobs:
           echo "DB_USER=${{ secrets.AWS_DB_USER }}" >> .env
           echo "DB_PW=${{ secrets.AWS_DB_PW }}" >> .env
           echo "DB_NAME=${{ secrets.AWS_DB_NAME }}" >> .env
-          echo "PORT=3021" >> .env
+          echo "PORT=3121" >> .env
           echo "NODE_ENV=production" >> .env
       - run: npm install
       - run: npm run bundle
