@@ -13,8 +13,8 @@ const app = express();
 // ========================================
 const corsOptions = {
   origin: [
-    "http://localhost:8081",  // Your frontend URL (Vite default)
-    "https://project3.eaglesoftwareteam.com",  // FIXED: Changed from project2 to project3
+    "http://localhost:8081",
+    "https://project3.eaglesoftwareteam.com",
     "https://project3.eaglesoftwareteam.com:3021"
   ],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
@@ -34,7 +34,7 @@ app.use(express.urlencoded({ extended: true }));
 // Request Logging Middleware
 // ========================================
 app.use((req, res, next) => {
-  console.log(`${req.method} ${req.path}`); // FIXED: Added parentheses
+  console.log(`${req.method} ${req.path}`); // FIXED
   next();
 });
 
@@ -62,7 +62,6 @@ app.get("/", (req, res) => {
 // ========================================
 // API Routes
 // ========================================
-// All routes are loaded from /app/routes/index.js
 app.use("/tracker-t1/api", routes);
 
 // ========================================
@@ -87,14 +86,11 @@ app.use((err, req, res, next) => {
   });
 });
 
-
 // Start Server
-
 const PORT = process.env.PORT || 3021;
-
 if (process.env.NODE_ENV !== "test") {
   app.listen(PORT, () => {
-    console.log(`✅ Server is running on port ${PORT}`); // FIXED: Added parentheses
+    console.log(`✅ Server is running on port ${PORT}`); // FIXED
   });
 }
 
