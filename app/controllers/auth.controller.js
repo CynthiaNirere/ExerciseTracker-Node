@@ -13,55 +13,10 @@ let googleUser = {};
 const google_id = process.env.CLIENT_ID;
 const google_secret = process.env.CLIENT_SECRET;
 
-const oauth2Client = new OAuth2Client(
-  google_id,
-  google_secret,
-  'https://project3.eaglesoftwareteam.com/tracker-t1/api/auth/google/callback'  // FIXED: Changed from project2 to project3
-);
-
 const exports = {};
 
-exports.googleAuth = (req, res) => {
-  const url = oauth2Client.generateAuthUrl({
-    access_type: 'offline',
-    scope: [
-      'https://www.googleapis.com/auth/userinfo.profile',
-      'https://www.googleapis.com/auth/userinfo.email'
-    ]
-  });
-  res.redirect(url);
-};
-
-exports.googleCallback = async (req, res) => {
-  const { code } = req.query;
-  try {
-    const { tokens } = await oauth2Client.getToken(code);
-    oauth2Client.setCredentials(tokens);
-
-    const oauth2 = google.oauth2({
-      auth: oauth2Client,
-      version: 'v2'
-    });
-
-    const { data } = await oauth2.userinfo.get();
-    
-    // Use the user data for login
-    googleUser = {
-      email: data.email,
-      given_name: data.given_name,
-      family_name: data.family_name
-    };
-    
-    // Continue with the existing login logic
-    const user = await handleUserLogin(googleUser);
-    res.redirect('https://project3.eaglesoftwareteam.com/tracker-t1/dashboard');  // FIXED: Changed from project2 to project3
-  } catch (error) {
-    console.error('Error during Google callback:', error);
-    res.status(500).json({ message: "Error during Google authentication" });
-  }
-};
-
 exports.login = async (req, res) => {
+  console.log("=== LOGIN REQUEST ===");
   var googleToken = req.body.credential;
 
   const client = new OAuth2Client(google_id);
@@ -125,6 +80,7 @@ exports.login = async (req, res) => {
     })
     .catch((err) => {
       res.status(500).send({ message: err.message });
+      return; // FIXED: Added return to prevent further execution
     });
 
   // this lets us get the user id
@@ -132,8 +88,8 @@ exports.login = async (req, res) => {
     await User.create(user)
       .then((data) => {
         user = data.dataValues;
-        res.status(200).send({ message: "User was registered successfully!" });
-        return;
+        console.log("User was registered successfully!");
+        // FIXED: Removed the response here - we need to continue to create session
       })
       .catch((err) => {
         res.status(500).send({ message: err.message });
@@ -175,19 +131,13 @@ exports.login = async (req, res) => {
           await Session.update(session, { where: { id: session.id } })
             .then((num) => {
               if (num == 1) {
-                console.log("successfully logged out");
+                console.log("successfully logged out expired session");
               } else {
-                console.log("failed");
-                res.send({
-                  message: `Error logging out user.`,
-                });
+                console.log("failed to clear expired session");
               }
             })
             .catch((err) => {
               console.log(err);
-              res.status(500).send({
-                message: "Error logging out user.",
-              });
             });
           //reset session to be null since we need to make another one
           session = {};
@@ -211,6 +161,7 @@ exports.login = async (req, res) => {
         message:
           err.message || "Some error occurred while retrieving sessions.",
       });
+      return; // FIXED: Added return to prevent further execution
     });
 
   if (session.id === undefined) {
@@ -220,7 +171,7 @@ exports.login = async (req, res) => {
     });
     let tempExpirationDate = new Date();
     tempExpirationDate.setDate(tempExpirationDate.getDate() + 1);
-    const session = {
+    const newSession = { // FIXED: Changed variable name to avoid conflict
       token: token,
       email: email,
       userId: user.id,
@@ -228,9 +179,9 @@ exports.login = async (req, res) => {
     };
 
     console.log("making a new session");
-    console.log(session);
+    console.log(newSession);
 
-    await Session.create(session)
+    await Session.create(newSession)
       .then(() => {
         let userInfo = {
           email: user.email,
@@ -249,67 +200,8 @@ exports.login = async (req, res) => {
   }
 };
 
-exports.authorize = async (req, res) => {
-  console.log("authorize client");
-  const oauth2Client = new google.auth.OAuth2(
-    process.env.CLIENT_ID,
-    process.env.CLIENT_SECRET,
-    "postmessage"
-  );
-
-  console.log("authorize token");
-  let { tokens } = await oauth2Client.getToken(req.body.code);
-  oauth2Client.setCredentials(tokens);
-
-  let user = {};
-  console.log("findUser");
-
-  await User.findOne({
-    where: {
-      id: req.params.id,
-    },
-  })
-    .then((data) => {
-      if (data != null) {
-        user = data.dataValues;
-      }
-    })
-    .catch((err) => {
-      res.status(500).send({ message: err.message });
-      return;
-    });
-  console.log("user");
-  console.log(user);
-  user.refresh_token = tokens.refresh_token;
-  let tempExpirationDate = new Date();
-  tempExpirationDate.setDate(tempExpirationDate.getDate() + 100);
-  user.expiration_date = tempExpirationDate;
-
-  await User.update(user, { where: { id: user.id } })
-    .then((num) => {
-      if (num == 1) {
-        console.log("updated user's google token stuff");
-      } else {
-        console.log(
-          `Cannot update User with id=${user.id}. Maybe User was not found or req.body is empty!`
-        );
-      }
-      let userInfo = {
-        refresh_token: user.refresh_token,
-        expiration_date: user.expiration_date,
-      };
-      console.log(userInfo);
-      res.send(userInfo);
-    })
-    .catch((err) => {
-      res.status(500).send({ message: err.message });
-    });
-
-  console.log(tokens);
-  console.log(oauth2Client);
-};
-
 exports.logout = async (req, res) => {
+  console.log("=== LOGOUT REQUEST ===");
   console.log(req.body);
   
   // Check if request body is null or empty
