@@ -27,23 +27,23 @@ export const getAthletes = async (req, res) => {
         model: AthleteProfile,
         as: 'athleteProfile',
         where: { 
-          coach_id: coachId  // ← FILTER BY COACH ID
+          coachId: coachId  // ✅ CHANGED: Use model field name
         },
-        required: true  // ← Changed to true so only athletes with profiles are returned
+        required: true
       }],
-      attributes: ['user_id', 'first_name', 'last_name', 'email', 'created_at']
+      attributes: ['id', 'fName', 'lName', 'email', 'created_at']  // ✅ CHANGED: Use model field names
     });
 
     // Format response
     const formattedAthletes = athletes.map(athlete => ({
-      user_id: athlete.user_id,
-      first_name: athlete.first_name,
-      last_name: athlete.last_name,
+      user_id: athlete.id,  // ✅ Map from model field
+      first_name: athlete.fName,  // ✅ Map from model field
+      last_name: athlete.lName,  // ✅ Map from model field
       email: athlete.email,
       age: athlete.athleteProfile?.age || null,
       gender: athlete.athleteProfile?.gender || null,
       team: athlete.athleteProfile?.team || null,
-      sport_type: athlete.athleteProfile?.sport_type || null,
+      sport_type: athlete.athleteProfile?.sportType || null,  // ✅ CHANGED: Use model field name
       bio: athlete.athleteProfile?.bio || null,
       totalWorkouts: 0,
       activeGoals: 0,
@@ -71,7 +71,7 @@ export const getAthleteById = async (req, res) => {
 
     const athlete = await User.findOne({
       where: { 
-        user_id: athleteId,
+        id: athleteId,  // ✅ CHANGED: Use model field name
         role: 'athlete'
       },
       include: [{
@@ -79,7 +79,7 @@ export const getAthleteById = async (req, res) => {
         as: 'athleteProfile',
         required: false
       }],
-      attributes: ['user_id', 'first_name', 'last_name', 'email', 'created_at']
+      attributes: ['id', 'fName', 'lName', 'email', 'created_at']  // ✅ CHANGED: Use model field names
     });
 
     if (!athlete) {
@@ -88,14 +88,14 @@ export const getAthleteById = async (req, res) => {
 
     // Format response
     const formattedAthlete = {
-      user_id: athlete.user_id,
-      first_name: athlete.first_name,
-      last_name: athlete.last_name,
+      user_id: athlete.id,  // ✅ Map from model field
+      first_name: athlete.fName,  // ✅ Map from model field
+      last_name: athlete.lName,  // ✅ Map from model field
       email: athlete.email,
       age: athlete.athleteProfile?.age || null,
       gender: athlete.athleteProfile?.gender || null,
       team: athlete.athleteProfile?.team || null,
-      sport_type: athlete.athleteProfile?.sport_type || null,
+      sport_type: athlete.athleteProfile?.sportType || null,  // ✅ CHANGED: Use model field name
       bio: athlete.athleteProfile?.bio || null,
       totalWorkouts: 0,
       created_at: athlete.created_at
@@ -129,7 +129,7 @@ export const createAthlete = async (req, res) => {
     } = req.body;
 
     console.log("📥 POST /api/athletes");
-    console.log("Creating athlete:", { first_name, last_name, email });
+    console.log("Creating athlete:", { first_name, last_name, email, coach_id });
 
     // Check if user already exists
     const existingUser = await User.findOne({ where: { email } });
@@ -137,35 +137,35 @@ export const createAthlete = async (req, res) => {
       return res.status(400).json({ message: "User with this email already exists" });
     }
 
-    // Create user
+    // Create user - ✅ Use model field names
     const newUser = await User.create({
-      first_name,
-      last_name,
+      fName: first_name,  // ✅ CHANGED
+      lName: last_name,   // ✅ CHANGED
       email,
       password_hash: null,
       role: role || 'athlete'
     });
 
-   // Create athlete profile if any profile data is provided
-if (age || gender || team || sport_type || bio || coach_id) {
-  await AthleteProfile.create({
-    athlete_id: newUser.user_id,
-    coach_id: coach_id || null,  // ← ADD THIS
-    age: age || null,
-    gender: gender || null,
-    team: team || null,
-    sport_type: sport_type || null,
-    bio: bio || null
-  });
-}
+    // Create athlete profile if any profile data is provided
+    if (age || gender || team || sport_type || bio || coach_id) {
+      await AthleteProfile.create({
+        athleteId: newUser.id,  // ✅ CHANGED: Use model field name
+        coachId: coach_id || null,  // ✅ CHANGED: Use model field name
+        age: age || null,
+        gender: gender || null,
+        team: team || null,
+        sportType: sport_type || null,  // ✅ CHANGED: Use model field name
+        bio: bio || null
+      });
+    }
 
     console.log("✅ Athlete created successfully");
     res.status(201).json({ 
       message: "Athlete created successfully",
       athlete: {
-        user_id: newUser.user_id,
-        first_name: newUser.first_name,
-        last_name: newUser.last_name,
+        user_id: newUser.id,  // ✅ Map from model field
+        first_name: newUser.fName,  // ✅ Map from model field
+        last_name: newUser.lName,   // ✅ Map from model field
         email: newUser.email
       }
     });
@@ -208,7 +208,7 @@ export const getCoachProfile = async (req, res) => {
 
     const coach = await User.findOne({
       where: { 
-        user_id: coachId,
+        id: coachId,  // ✅ CHANGED: Use model field name
         role: 'coach'
       },
       include: [{
@@ -216,7 +216,7 @@ export const getCoachProfile = async (req, res) => {
         as: 'coachProfile',
         required: false
       }],
-      attributes: ['user_id', 'first_name', 'last_name', 'email', 'created_at']
+      attributes: ['id', 'fName', 'lName', 'email', 'created_at']  // ✅ CHANGED: Use model field names
     });
 
     if (!coach) {
@@ -224,9 +224,9 @@ export const getCoachProfile = async (req, res) => {
     }
 
     const formattedCoach = {
-      user_id: coach.user_id,
-      first_name: coach.first_name,
-      last_name: coach.last_name,
+      user_id: coach.id,  // ✅ Map from model field
+      first_name: coach.fName,  // ✅ Map from model field
+      last_name: coach.lName,  // ✅ Map from model field
       email: coach.email,
       experience_years: coach.coachProfile?.experienceYears || null,
       team: coach.coachProfile?.team || null,
