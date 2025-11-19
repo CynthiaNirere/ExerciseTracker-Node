@@ -4,12 +4,19 @@ import authenticate from "../authorization/authorization.js";
 
 const router = express.Router();
 
-// Re-enable authentication
+// Existing routes
 router.post("/", authenticate, exercisePlans.create);
 router.get("/", authenticate, exercisePlans.findAll);
 router.get("/difficulty/:difficulty", authenticate, exercisePlans.findByDifficulty);
 router.get("/:id", authenticate, exercisePlans.findOne);
 router.put("/:id", authenticate, exercisePlans.update);
 router.delete("/:id", authenticate, exercisePlans.remove);
+
+// ========================================
+// NEW: Plan Assignment Routes
+// ========================================
+router.post("/:planId/assign", authenticate, exercisePlans.assignPlanToAthlete);
+router.get("/athlete/:athleteId", authenticate, exercisePlans.getAssignedPlans);
+router.delete("/:planId/assign/:athleteId", authenticate, exercisePlans.unassignPlanFromAthlete);
 
 export default router;
