@@ -381,3 +381,152 @@ export const findByCoach = async (req, res) => {
     });
   }
 };
+
+// ========================================
+// ASSIGN PLAN TO ATHLETE
+// ========================================
+export const assignPlanToAthlete = async (req, res) => {
+  try {
+    const { planId } = req.params;
+    const { athleteId } = req.body;
+    
+    console.log("📥 POST /exercise-plans/:planId/assign");
+    console.log("Plan ID:", planId);
+    console.log("Athlete ID:", athleteId);
+    
+    // Check if plan exists
+    const plan = await ExercisePlan.findByPk(planId);
+    if (!plan) {
+      return res.status(404).json({ message: "Plan not found" });
+    }
+    
+    // Check if athlete exists
+    const athlete = await db.user.findByPk(athleteId);
+    if (!athlete || athlete.role !== 'athlete') {
+      return res.status(404).json({ message: "Athlete not found" });
+    }
+    
+    // Check if already assigned
+    const existingAssignment = await db.athletePlan.findOne({
+      where: { 
+        athleteId: athleteId,
+        planId: planId
+      }
+    });
+    
+    if (existingAssignment) {
+      return res.status(400).json({ message: "Plan already assigned to this athlete" });
+    }
+    
+    // Create assignment
+    const assignment = await db.athletePlan.create({
+      athleteId: athleteId,
+      planId: planId,
+      assignedDate: new Date(),
+      status: 'active'
+    });
+    
+    console.log("✅ Plan assigned successfully");
+    
+    res.status(201).json({
+      message: "Plan assigned successfully",
+      assignment: assignment
+    });
+    
+  } catch (err) {
+    console.error('❌ Error assigning plan:', err);
+    res.status(500).json({
+      message: "Error assigning plan to athlete",
+      error: err.message
+    });
+  }
+};
+
+// ========================================
+// GET PLANS ASSIGNED TO ATHLETE
+// ========================================
+export const getAssignedPlans = async (req, res) => {
+  try {
+    const { athleteId } = req.params;
+    
+    console.log("📥 GET /exercise-plans/athlete/:athleteId");
+    console.log("Athlete ID:", athleteId);
+    
+    // Get all assigned plans with details
+    const assignments = await db.athletePlan.findAll({
+      where: { athleteId: athleteId },
+      include: [{
+        model: ExercisePlan,
+        as: 'plan',
+        include: [{
+          model: Exercise,
+          as: 'exercises',
+          through: {
+            attributes: ['sets', 'reps', 'weight', 'duration', 'rest_seconds', 'order']
+          },
+          attributes: ['id', 'name', 'muscleGroup', 'category', 'difficulty', 'description']
+        }]
+      }],
+      order: [['assignedDate', 'DESC']]
+    });
+    
+    console.log(`✅ Found ${assignments.length} assigned plans`);
+    
+    // Format response
+    const formattedPlans = assignments.map(assignment => ({
+      assignmentId: assignment.id,
+      assignedDate: assignment.assignedDate,
+      status: assignment.status,
+      plan: {
+        id: assignment.plan.id,
+        name: assignment.plan.name,
+        description: assignment.plan.description,
+        duration: assignment.plan.duration,
+        difficulty: assignment.plan.difficulty,
+        exercises: assignment.plan.exercises || [],
+        exerciseCount: assignment.plan.exercises ? assignment.plan.exercises.length : 0
+      }
+    }));
+    
+    res.json(formattedPlans);
+    
+  } catch (err) {
+    console.error('❌ Error fetching assigned plans:', err);
+    res.status(500).json({
+      message: "Error fetching assigned plans",
+      error: err.message
+    });
+  }
+};
+
+// ========================================
+// UNASSIGN PLAN FROM ATHLETE
+// ========================================
+export const unassignPlanFromAthlete = async (req, res) => {
+  try {
+    const { planId, athleteId } = req.params;
+    
+    console.log("📥 DELETE /exercise-plans/:planId/assign/:athleteId");
+    
+    const deleted = await db.athletePlan.destroy({
+      where: {
+        planId: planId,
+        athleteId: athleteId
+      }
+    });
+    
+    if (deleted) {
+      console.log("✅ Plan unassigned successfully");
+      return res.json({ message: "Plan unassigned successfully" });
+    }
+    
+    res.status(404).json({ message: "Assignment not found" });
+    
+  } catch (err) {
+    console.error('❌ Error unassigning plan:', err);
+    res.status(500).json({
+      message: "Error unassigning plan",
+      error: err.message
+    });
+  }
+};

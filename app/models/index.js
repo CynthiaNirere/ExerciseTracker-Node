@@ -6,6 +6,7 @@ import ExerciseResult from "./exerciseResult.model.js";
 import Goal from "./goal.model.js";
 import ExercisePlan from "./exercisePlan.model.js";
 import ExercisePlanItem from "./exercisePlanItem.model.js";
+import AthletePlan from "./athletePlan.model.js";
 import Session from "./session.model.js";
 import sequelize from "../config/sequelizeInstance.js";
 import { Sequelize } from "sequelize";
@@ -18,13 +19,14 @@ db.sequelize = sequelize;
 // Models
 db.user = User;
 db.athleteProfile = AthleteProfile;
-db.coach = Coach; // ← ADD THIS
+db.coach = Coach;
 db.exercise = Exercise;
 db.exerciseResult = ExerciseResult;
 db.goal = Goal;
 db.exercisePlan = ExercisePlan;
 db.exercisePlanItem = ExercisePlanItem;
 db.session = Session;
+db.athletePlan= AthletePlan;
 
 // ========================================
 // Associations
@@ -92,6 +94,26 @@ Exercise.belongsToMany(ExercisePlan, {
   foreignKey: 'exercise_id',
   otherKey: 'plan_id',
   as: 'plans'
+});
+
+AthletePlan.belongsTo(User, {
+  foreignKey: 'athleteId',
+  as: 'athlete'
+});
+
+AthletePlan.belongsTo(ExercisePlan, {
+  foreignKey: 'planId',
+  as: 'plan'
+});
+
+ExercisePlan.hasMany(AthletePlan, {
+  foreignKey: 'planId',
+  as: 'assignments'
+});
+
+User.hasMany(AthletePlan, {
+  foreignKey: 'athleteId',
+  as: 'assignedPlans'
 });
 
 export default db;
