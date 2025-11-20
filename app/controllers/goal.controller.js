@@ -28,8 +28,8 @@ export const getGoalsByAthlete = async (req, res) => {
         unit: data.unit,
         status: data.status,
         startDate: data.startDate,
-        endDate: data.endDate, // This is what frontend needs as targetDate
-        targetDate: data.endDate // Also include as targetDate for compatibility
+        endDate: data.endDate,
+        targetDate: data.endDate  // Also include as targetDate for compatibility
       };
     });
     
@@ -65,9 +65,9 @@ export const createGoal = async (req, res) => {
       targetValue: req.body.targetValue,
       currentValue: req.body.currentValue || 0,
       unit: req.body.unit || 'count',
-      status: req.body.status || 'in_progress',
+      status: req.body.status || 'active',  // ✅ FIXED: Changed default to 'active'
       startDate: req.body.startDate || new Date(),
-      endDate: req.body.targetDate || req.body.endDate // Map targetDate to endDate
+      endDate: req.body.targetDate || req.body.endDate
     });
     
     res.status(201).send(goal);
@@ -92,7 +92,7 @@ export const updateGoal = async (req, res) => {
       currentValue: req.body.currentValue,
       unit: req.body.unit,
       status: req.body.status,
-      endDate: req.body.targetDate || req.body.endDate // Map targetDate to endDate
+      endDate: req.body.targetDate || req.body.endDate
     };
     
     const [updated] = await Goal.update(updateData, {
@@ -100,7 +100,8 @@ export const updateGoal = async (req, res) => {
     });
     
     if (updated === 1) {
-      res.send({ message: "Goal updated successfully." });
+      const updatedGoal = await Goal.findByPk(id);
+      res.send(updatedGoal);  // ✅ FIXED: Return updated goal instead of just message
     } else {
       res.status(404).send({
         message: `Goal not found or no data changed.`

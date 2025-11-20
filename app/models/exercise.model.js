@@ -6,52 +6,51 @@ const Exercise = sequelize.define("Exercise", {
       type: DataTypes.INTEGER,
       autoIncrement: true,
       primaryKey: true,
-      field: 'exercise_id'  // ✓ Maps 'id' to 'exercise_id' in DB
+      field: 'exercise_id'
     },
     name: {
       type: DataTypes.STRING(255),
       allowNull: false
     },
-    category: {
-      type: DataTypes.STRING(50),
-      allowNull: true
-    },
     description: {
       type: DataTypes.TEXT,
       allowNull: true
     },
-    instructions: {
-      type: DataTypes.TEXT,
-      allowNull: true
-    },
-    difficulty: {
-      type: DataTypes.STRING(50),
-      allowNull: true
-    },
-    muscleGroup: {  // ✓ Use camelCase in model
+    muscleGroup: {
       type: DataTypes.STRING(100),
       allowNull: true,
-      field: 'muscle_group'  // ✓ Maps to snake_case in DB
+      field: 'muscle_group'
     },
-    equipmentNeeded: {  // ✓ Use camelCase in model
+    equipmentNeeded: {
       type: DataTypes.STRING(255),
       allowNull: true,
-      field: 'equipment_needed'  // ✓ Maps to snake_case in DB
+      field: 'equipment_needed'
+    },
+    isStandard: {  // NEW FIELD
+      type: DataTypes.BOOLEAN,
+      allowNull: true,
+      defaultValue: false,
+      field: 'is_standard'
     },
     createdBy: {
       type: DataTypes.INTEGER,
-      allowNull: true,
+      allowNull: false,
       field: 'created_by'
     },
     createdAt: {
       type: DataTypes.DATE,
       defaultValue: DataTypes.NOW,
       field: 'created_at'
+    },
+    updatedAt: {  // NEW FIELD
+      type: DataTypes.DATE,
+      allowNull: true,
+      field: 'updated_at'
     }
   }, {
     tableName: 'exercises',
     timestamps: false,
-    underscored: false  // ✓ Set to false since we're manually mapping
+    underscored: false
   });
 
 export default Exercise;

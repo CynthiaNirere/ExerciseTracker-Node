@@ -13,7 +13,11 @@ const Goal = sequelize.define(
     athleteId: {
       type: DataTypes.INTEGER,
       allowNull: false,
-      field: 'athlete_id'
+      field: 'athlete_id',
+      references: {
+        model: 'users',
+        key: 'user_id'
+      }
     },
     title: {
       type: DataTypes.STRING(255),
@@ -25,7 +29,7 @@ const Goal = sequelize.define(
     },
     targetValue: {
       type: DataTypes.DECIMAL(9, 2),
-      allowNull: false,
+      allowNull: true,
       field: 'target_value'
     },
     currentValue: {
@@ -36,13 +40,12 @@ const Goal = sequelize.define(
     },
     unit: {
       type: DataTypes.STRING(50),
-      allowNull: true,
-      defaultValue: 'count'
+      allowNull: true
     },
     status: {
-      type: DataTypes.STRING(50),
+      type: DataTypes.ENUM('active', 'completed', 'cancelled'),
       allowNull: true,
-      defaultValue: 'in_progress'
+      defaultValue: 'active'
     },
     startDate: {
       type: DataTypes.DATEONLY,
@@ -53,6 +56,16 @@ const Goal = sequelize.define(
       type: DataTypes.DATEONLY,
       allowNull: true,
       field: 'end_date'
+    },
+    createdAt: {  // NEW FIELD
+      type: DataTypes.DATE,
+      allowNull: true,
+      field: 'created_at'
+    },
+    updatedAt: {  // NEW FIELD
+      type: DataTypes.DATE,
+      allowNull: true,
+      field: 'updated_at'
     }
   },
   {

@@ -90,22 +90,30 @@ export const remove = async (req, res) => {
     
     // Delete related records first (foreign key constraints)
     // 1. Delete athlete profile
-    await db.athleteProfile.destroy({ where: { athlete_id: id } });
+    await db.athleteProfile.destroy({ where: { athleteId: id } });
     console.log('Deleted athlete profile');
     
-    // 2. Delete goals
-    await db.goal.destroy({ where: { athlete_id: id } });
+    // 2. Delete coach profile
+    await db.coach.destroy({ where: { coachId: id } });
+    console.log('Deleted coach profile');
+    
+    // 3. Delete goals
+    await db.goal.destroy({ where: { athleteId: id } });
     console.log('Deleted goals');
     
-    // 3. Delete exercise results
-    await db.exerciseResult.destroy({ where: { athlete_id: id } });
+    // 4. Delete exercise results
+    await db.exerciseResult.destroy({ where: { athleteId: id } });
     console.log('Deleted exercise results');
     
-    // 4. Delete sessions
-    await db.session.destroy({ where: { user_id: id } });
+    // 5. Delete athlete plans
+    await db.athletePlan.destroy({ where: { athleteId: id } });
+    console.log('Deleted athlete plans');
+    
+    // 6. Delete sessions
+    await db.session.destroy({ where: { userId: id } });
     console.log('Deleted sessions');
     
-    // 5. Now delete the user
+    // 7. Now delete the user
     const deleted = await User.destroy({ where: { id: id } });
     
     if (deleted) {

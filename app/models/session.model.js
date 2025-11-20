@@ -6,6 +6,7 @@ const Session = SequelizeInstance.define("sessions", {
     type: Sequelize.INTEGER,
     autoIncrement: true,
     primaryKey: true,
+    field: 'session_id'  // CRITICAL FIX: Maps to session_id in database
   },
   token: {
     type: Sequelize.STRING(3000),
@@ -15,7 +16,7 @@ const Session = SequelizeInstance.define("sessions", {
     type: Sequelize.STRING,
     allowNull: false,
   },
-  userId: {  // ADD THIS FIELD
+  userId: {
     type: Sequelize.INTEGER,
     allowNull: false,
     field: 'user_id'  // Maps to user_id in database
@@ -23,11 +24,11 @@ const Session = SequelizeInstance.define("sessions", {
   expirationDate: {
     type: Sequelize.DATE,
     allowNull: false,
-    field: 'expiration_date'
+    field: 'expiration_date'  // Maps to expiration_date in database
   },
 }, {
   tableName: "sessions",
-  timestamps: false
+  timestamps: false  // No createdAt/updatedAt
 });
 
 export default Session;

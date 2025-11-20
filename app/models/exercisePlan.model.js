@@ -17,20 +17,31 @@ const ExercisePlan = sequelize.define("ExercisePlan", {
       type: DataTypes.TEXT,
       allowNull: true
     },
-    created_by: {
-      type: DataTypes.INTEGER,
-      allowNull: true
+    isStandard: {  // NEW FIELD
+      type: DataTypes.BOOLEAN,
+      allowNull: true,
+      defaultValue: false,
+      field: 'is_standard'
     },
-    created_at: {
+    createdBy: {  // FIXED - use camelCase
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      field: 'created_by'
+    },
+    createdAt: {  // FIXED - use camelCase
       type: DataTypes.DATE,
-      defaultValue: DataTypes.NOW
+      defaultValue: DataTypes.NOW,
+      field: 'created_at'
+    },
+    updatedAt: {  // NEW FIELD
+      type: DataTypes.DATE,
+      allowNull: true,
+      field: 'updated_at'
     }
   }, {
     tableName: 'exercise_plans',
     timestamps: false,
-    underscored: true
+    underscored: false
   });
-
-// Remove the associate function - associations are now in index.js
 
 export default ExercisePlan;
