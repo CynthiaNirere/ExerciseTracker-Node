@@ -14,27 +14,27 @@ export const create = async (req, res) => {
     }
     
     console.log("📥 POST /exercise-plans - Creating plan:", req.body.name);
+    console.log("User from auth:", req.user);
     
     // Create the plan
     const plan = await ExercisePlan.create({
       name: req.body.name,
       description: req.body.description || null,
-      duration: req.body.duration || null,
-      difficulty: req.body.difficulty || 'Intermediate',
-      created_by: req.user?.userId || null,
+      isStandard: req.body.isStandard || false,
+      createdBy: req.user?.userId || 1,  // ✅ FIXED: Use createdBy and get from req.user
     });
 
     // Add exercises with details if provided
     if (req.body.exercises && req.body.exercises.length > 0) {
       const exerciseItems = req.body.exercises.map((item, index) => ({
-        plan_id: plan.id,
-        exercise_id: typeof item === 'object' ? item.exercise_id : item, // Support both formats
+        planId: plan.id,  // ✅ FIXED: Use camelCase
+        exerciseId: typeof item === 'object' ? item.exercise_id : item,  // ✅ FIXED: Use camelCase
         sets: item.sets || 3,
-        reps: item.reps || '10',
-        weight: item.weight || 0,
-        duration: item.duration_seconds || null,
-        rest_seconds: item.rest_seconds || 60,
-        order: item.order !== undefined ? item.order : index
+        reps: item.reps || 10,
+        durationSeconds: item.duration_seconds || item.durationSeconds || null,  // ✅ FIXED
+        restSeconds: item.rest_seconds || item.restSeconds || 60,  // ✅ FIXED
+        orderIndex: item.order !== undefined ? item.order : index,  // ✅ FIXED
+        notes: item.notes || null
       }));
       
       await ExercisePlanItem.bulkCreate(exerciseItems);
@@ -46,8 +46,9 @@ export const create = async (req, res) => {
         model: Exercise,
         as: 'exercises',
         through: {
-          attributes: ['sets', 'reps', 'weight', 'duration', 'rest_seconds', 'order']
-        }
+          attributes: ['sets', 'reps', 'durationSeconds', 'restSeconds', 'orderIndex']
+        },
+        attributes: ['id', 'name', 'muscleGroup', 'equipmentNeeded', 'description']  // ✅ REMOVED category, difficulty
       }]
     });
 
@@ -58,12 +59,11 @@ export const create = async (req, res) => {
       id: newPlan.id,
       name: newPlan.name,
       description: newPlan.description,
-      duration: newPlan.duration,
-      difficulty: newPlan.difficulty,
-      assignedAthletes: 0, // TODO: Calculate from assignments
+      isStandard: newPlan.isStandard,
+      assignedAthletes: 0,
       exercises: newPlan.exercises ? newPlan.exercises.length : 0,
       exerciseList: newPlan.exercises || [],
-      created_at: newPlan.created_at
+      createdAt: newPlan.createdAt
     };
 
     res.status(201).send(formattedPlan);
@@ -87,26 +87,25 @@ export const findAll = async (req, res) => {
         model: Exercise,
         as: 'exercises',
         through: {
-          attributes: ['sets', 'reps', 'weight', 'duration', 'rest_seconds', 'order']
+          attributes: ['sets', 'reps', 'durationSeconds', 'restSeconds', 'orderIndex']
         },
-        attributes: ['id', 'name', 'muscleGroup', 'category', 'difficulty']
+        attributes: ['id', 'name', 'muscleGroup', 'equipmentNeeded']  // ✅ REMOVED category, difficulty
       }],
-      order: [['created_at', 'DESC']]
+      order: [['createdAt', 'DESC']]
     });
     
     console.log(`✅ Found ${plans.length} plans`);
     
-    // Format response for frontend (like teammate's controller)
+    // Format response for frontend
     const formattedPlans = plans.map(plan => ({
       id: plan.id,
       name: plan.name,
       description: plan.description,
-      duration: plan.duration,
-      difficulty: plan.difficulty,
-      assignedAthletes: 0, // TODO: Calculate from assignments
+      isStandard: plan.isStandard,
+      assignedAthletes: 0,
       exercises: plan.exercises ? plan.exercises.length : 0,
       exerciseList: plan.exercises || [],
-      created_at: plan.created_at
+      createdAt: plan.createdAt
     }));
     
     res.send(formattedPlans);
@@ -132,9 +131,9 @@ export const findOne = async (req, res) => {
         model: Exercise,
         as: 'exercises',
         through: {
-          attributes: ['sets', 'reps', 'weight', 'duration', 'rest_seconds', 'order']
+          attributes: ['sets', 'reps', 'durationSeconds', 'restSeconds', 'orderIndex']
         },
-        attributes: ['id', 'name', 'muscleGroup', 'category', 'difficulty', 'description']
+        attributes: ['id', 'name', 'muscleGroup', 'equipmentNeeded', 'description']  // ✅ REMOVED category, difficulty
       }]
     });
     
@@ -151,12 +150,11 @@ export const findOne = async (req, res) => {
       id: plan.id,
       name: plan.name,
       description: plan.description,
-      duration: plan.duration,
-      difficulty: plan.difficulty,
-      assignedAthletes: 0, // TODO: Calculate from assignments
+      isStandard: plan.isStandard,
+      assignedAthletes: 0,
       exercises: plan.exercises ? plan.exercises.length : 0,
       exerciseList: plan.exercises || [],
-      created_at: plan.created_at
+      createdAt: plan.createdAt
     };
     
     res.send(formattedPlan);
@@ -189,8 +187,7 @@ export const update = async (req, res) => {
     await ExercisePlan.update({
       name: req.body.name,
       description: req.body.description,
-      duration: req.body.duration,
-      difficulty: req.body.difficulty
+      isStandard: req.body.isStandard
     }, {
       where: { id: id }
     });
@@ -199,20 +196,20 @@ export const update = async (req, res) => {
     if (req.body.exercises !== undefined) {
       // Delete existing exercise items
       await ExercisePlanItem.destroy({
-        where: { plan_id: id }
+        where: { planId: id }
       });
       
       // Add new exercise items
       if (req.body.exercises.length > 0) {
         const exerciseItems = req.body.exercises.map((item, index) => ({
-          plan_id: id,
-          exercise_id: typeof item === 'object' ? item.exercise_id : item,
+          planId: id,
+          exerciseId: typeof item === 'object' ? item.exercise_id : item,
           sets: item.sets || 3,
-          reps: item.reps || '10',
-          weight: item.weight || 0,
-          duration: item.duration_seconds || null,
-          rest_seconds: item.rest_seconds || 60,
-          order: item.order !== undefined ? item.order : index
+          reps: item.reps || 10,
+          durationSeconds: item.duration_seconds || item.durationSeconds || null,
+          restSeconds: item.rest_seconds || item.restSeconds || 60,
+          orderIndex: item.order !== undefined ? item.order : index,
+          notes: item.notes || null
         }));
         
         await ExercisePlanItem.bulkCreate(exerciseItems);
@@ -225,8 +222,9 @@ export const update = async (req, res) => {
         model: Exercise,
         as: 'exercises',
         through: {
-          attributes: ['sets', 'reps', 'weight', 'duration', 'rest_seconds', 'order']
-        }
+          attributes: ['sets', 'reps', 'durationSeconds', 'restSeconds', 'orderIndex']
+        },
+        attributes: ['id', 'name', 'muscleGroup', 'equipmentNeeded']
       }]
     });
     
@@ -237,12 +235,11 @@ export const update = async (req, res) => {
       id: updatedPlan.id,
       name: updatedPlan.name,
       description: updatedPlan.description,
-      duration: updatedPlan.duration,
-      difficulty: updatedPlan.difficulty,
+      isStandard: updatedPlan.isStandard,
       assignedAthletes: 0,
       exercises: updatedPlan.exercises ? updatedPlan.exercises.length : 0,
       exerciseList: updatedPlan.exercises || [],
-      created_at: updatedPlan.created_at
+      createdAt: updatedPlan.createdAt
     };
     
     res.send(formattedPlan);
@@ -263,9 +260,9 @@ export const remove = async (req, res) => {
     
     console.log("📥 DELETE /exercise-plans/:id", id);
     
-    // Delete exercise items first
+    // Delete exercise items first (CASCADE should handle this, but being explicit)
     await ExercisePlanItem.destroy({
-      where: { plan_id: id }
+      where: { planId: id }
     });
     
     // Delete the plan
@@ -293,52 +290,14 @@ export const remove = async (req, res) => {
 };
 
 // ========================================
-// Find plans by difficulty
+// Find plans by difficulty (NOT NEEDED - REMOVE THIS IF NO DIFFICULTY)
 // ========================================
 export const findByDifficulty = async (req, res) => {
-  try {
-    const difficulty = req.params.difficulty;
-    
-    console.log("📥 GET /exercise-plans/difficulty/:difficulty", difficulty);
-    
-    const plans = await ExercisePlan.findAll({
-      where: { difficulty: difficulty },
-      include: [{
-        model: Exercise,
-        as: 'exercises',
-        through: {
-          attributes: ['sets', 'reps', 'weight', 'duration', 'rest_seconds', 'order']
-        },
-        attributes: ['id', 'name', 'muscle_group', 'category']
-      }]
-    });
-    
-    console.log(`✅ Found ${plans.length} plans with difficulty: ${difficulty}`);
-    
-    // Format response
-    const formattedPlans = plans.map(plan => ({
-      id: plan.id,
-      name: plan.name,
-      description: plan.description,
-      duration: plan.duration,
-      difficulty: plan.difficulty,
-      assignedAthletes: 0,
-      exercises: plan.exercises ? plan.exercises.length : 0,
-      exerciseList: plan.exercises || []
-    }));
-    
-    res.send(formattedPlans);
-  } catch (err) {
-    console.error('❌ Error retrieving plans by difficulty:', err);
-    res.status(500).send({
-      message: `Error retrieving Exercise Plans with difficulty=${difficulty}`,
-      error: err.message
-    });
-  }
+  res.status(501).send({ message: "Difficulty filtering not implemented - field does not exist" });
 };
 
 // ========================================
-// Get plans by coach (Future feature)
+// Get plans by coach
 // ========================================
 export const findByCoach = async (req, res) => {
   try {
@@ -347,16 +306,16 @@ export const findByCoach = async (req, res) => {
     console.log("📥 GET /exercise-plans/coach/:coachId", coachId);
     
     const plans = await ExercisePlan.findAll({
-      where: { created_by: coachId },
+      where: { createdBy: coachId },
       include: [{
         model: Exercise,
         as: 'exercises',
         through: {
-          attributes: ['sets', 'reps', 'weight', 'duration', 'rest_seconds', 'order']
+          attributes: ['sets', 'reps', 'durationSeconds', 'restSeconds', 'orderIndex']
         },
-        attributes: ['id', 'name', 'muscleGroup', 'category', 'difficulty']
+        attributes: ['id', 'name', 'muscleGroup', 'equipmentNeeded']
       }],
-      order: [['created_at', 'DESC']]
+      order: [['createdAt', 'DESC']]
     });
     
     console.log(`✅ Found ${plans.length} plans for coach: ${coachId}`);
@@ -365,8 +324,7 @@ export const findByCoach = async (req, res) => {
       id: plan.id,
       name: plan.name,
       description: plan.description,
-      duration: plan.duration,
-      difficulty: plan.difficulty,
+      isStandard: plan.isStandard,
       assignedAthletes: 0,
       exercises: plan.exercises ? plan.exercises.length : 0,
       exerciseList: plan.exercises || []
@@ -422,6 +380,7 @@ export const assignPlanToAthlete = async (req, res) => {
     const assignment = await db.athletePlan.create({
       athleteId: athleteId,
       planId: planId,
+      assignedBy: req.user?.userId || 1,  // ✅ ADDED
       assignedDate: new Date(),
       status: 'active'
     });
@@ -462,9 +421,9 @@ export const getAssignedPlans = async (req, res) => {
           model: Exercise,
           as: 'exercises',
           through: {
-            attributes: ['sets', 'reps', 'weight', 'duration', 'rest_seconds', 'order']
+            attributes: ['sets', 'reps', 'durationSeconds', 'restSeconds', 'orderIndex']
           },
-          attributes: ['id', 'name', 'muscleGroup', 'category', 'difficulty', 'description']
+          attributes: ['id', 'name', 'muscleGroup', 'equipmentNeeded', 'description']  // ✅ REMOVED category, difficulty
         }]
       }],
       order: [['assignedDate', 'DESC']]
@@ -481,8 +440,6 @@ export const getAssignedPlans = async (req, res) => {
         id: assignment.plan.id,
         name: assignment.plan.name,
         description: assignment.plan.description,
-        duration: assignment.plan.duration,
-        difficulty: assignment.plan.difficulty,
         exercises: assignment.plan.exercises || [],
         exerciseCount: assignment.plan.exercises ? assignment.plan.exercises.length : 0
       }

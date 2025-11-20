@@ -13,8 +13,8 @@ const AthletePlan = sequelize.define("AthletePlan", {
     allowNull: false,
     field: 'athlete_id',
     references: {
-      model: 'athlete_profiles',
-      key: 'athlete_id'
+      model: 'users',  // CHANGED from athlete_profiles
+      key: 'user_id'
     }
   },
   planId: {
@@ -26,16 +26,39 @@ const AthletePlan = sequelize.define("AthletePlan", {
       key: 'plan_id'
     }
   },
+  assignedBy: {  // NEW FIELD
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    field: 'assigned_by',
+    references: {
+      model: 'users',
+      key: 'user_id'
+    }
+  },
   assignedDate: {
     type: DataTypes.DATEONLY,
     allowNull: false,
-    defaultValue: DataTypes.NOW,
     field: 'assigned_date'
   },
+  startDate: {  // NEW FIELD
+    type: DataTypes.DATEONLY,
+    allowNull: true,
+    field: 'start_date'
+  },
+  endDate: {  // NEW FIELD
+    type: DataTypes.DATEONLY,
+    allowNull: true,
+    field: 'end_date'
+  },
   status: {
-    type: DataTypes.STRING(50),
+    type: DataTypes.ENUM('active', 'completed', 'paused', 'cancelled'),
     allowNull: true,
     defaultValue: 'active'
+  },
+  createdAt: {  // NEW FIELD
+    type: DataTypes.DATE,
+    allowNull: true,
+    field: 'created_at'
   }
 }, {
   tableName: 'athlete_plans',

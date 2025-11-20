@@ -2,19 +2,25 @@ import { DataTypes } from "sequelize";
 import sequelize from "../config/sequelizeInstance.js";
 
 const ExercisePlanItem = sequelize.define("ExercisePlanItem", {
-    plan_id: {
+    id: {  // CHANGED - add auto-increment ID
+      type: DataTypes.INTEGER,
+      autoIncrement: true,
+      primaryKey: true,
+      field: 'detail_id'
+    },
+    planId: {  // CHANGED to camelCase
       type: DataTypes.INTEGER,
       allowNull: false,
-      primaryKey: true,
+      field: 'plan_id',
       references: {
         model: 'exercise_plans',
         key: 'plan_id'
       }
     },
-    exercise_id: {
+    exerciseId: {  // CHANGED to camelCase
       type: DataTypes.INTEGER,
       allowNull: false,
-      primaryKey: true,
+      field: 'exercise_id',
       references: {
         model: 'exercises',
         key: 'exercise_id'
@@ -22,39 +28,40 @@ const ExercisePlanItem = sequelize.define("ExercisePlanItem", {
     },
     sets: {
       type: DataTypes.INTEGER,
-      allowNull: false,
-      defaultValue: 3
+      allowNull: true,
+      defaultValue: 0
     },
     reps: {
-      type: DataTypes.STRING(50),
-      allowNull: false,
-      defaultValue: '10'
-    },
-    weight: {
-      type: DataTypes.DECIMAL(10, 2),
+      type: DataTypes.INTEGER,
       allowNull: true,
       defaultValue: 0
     },
-    duration: {
+    durationSeconds: {  // CHANGED name
       type: DataTypes.INTEGER,
+      allowNull: true,
+      defaultValue: 0,
+      field: 'duration_seconds'
+    },
+    restSeconds: {  // CHANGED to camelCase
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      defaultValue: 0,
+      field: 'rest_seconds'
+    },
+    orderIndex: {  // CHANGED name
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      defaultValue: 0,
+      field: 'order_index'
+    },
+    notes: {  // NEW FIELD
+      type: DataTypes.TEXT,
       allowNull: true
-    },
-    rest_seconds: {
-      type: DataTypes.INTEGER,
-      allowNull: true,
-      defaultValue: 60
-    },
-    order: {
-      type: DataTypes.INTEGER,
-      allowNull: false,
-      defaultValue: 0
     }
   }, {
-    tableName: 'exercise_plan_items',
-    timestamps: true,
-    underscored: true,
-    createdAt: 'created_at',
-    updatedAt: 'updated_at'
+    tableName: 'exercise_plan_details',  // CHANGED table name
+    timestamps: false,
+    underscored: false
   });
 
 export default ExercisePlanItem;

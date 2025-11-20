@@ -18,7 +18,9 @@ export const getAllExercises = async (req, res) => {
     const plainExercises = exercises.map(ex => ex.toJSON());
     
     console.log(`Found ${plainExercises.length} exercises`);
-    console.log('First exercise:', plainExercises[0]);
+    if (plainExercises.length > 0) {
+      console.log('First exercise:', plainExercises[0]);
+    }
     
     res.send(plainExercises);
   } catch (err) {
@@ -29,6 +31,7 @@ export const getAllExercises = async (req, res) => {
     });
   }
 };
+
 // Get single exercise by ID
 export const getExerciseById = async (req, res) => {
   try {
@@ -99,6 +102,7 @@ export const findAll = async (req, res) => {
         {
           model: Exercise,
           as: 'exercise',
+          attributes: ['id', 'name', 'description', 'muscleGroup'],  
           required: false
         }
       ]
@@ -124,7 +128,7 @@ export const findByAthlete = async (req, res) => {
         {
           model: Exercise,
           as: 'exercise',
-          attributes: ['id', 'name', 'description', 'muscleGroup'],
+          attributes: ['id', 'name', 'description', 'muscleGroup'], 
           required: false
         }
       ],
@@ -161,7 +165,8 @@ export const findOne = async (req, res) => {
       include: [
         {
           model: Exercise,
-          as: 'exercise'
+          as: 'exercise',
+          attributes: ['id', 'name', 'description', 'muscleGroup']  
         }
       ]
     });
@@ -251,12 +256,10 @@ export const createExercise = async (req, res) => {
   try {
     const exercise = await Exercise.create({
       name: req.body.name,
-      category: req.body.category || null,
       description: req.body.description || null,
-      instructions: req.body.instructions || null,
-      difficulty: req.body.difficulty || null,
       muscleGroup: req.body.muscleGroups || req.body.muscleGroup || null,
       equipmentNeeded: req.body.equipment || req.body.equipmentNeeded || null,
+      isStandard: req.body.isStandard || false,
       createdBy: req.user?.userId || 1
     });
     
@@ -280,12 +283,10 @@ export const updateExercise = async (req, res) => {
     
     const updateData = {
       name: req.body.name,
-      category: req.body.category,
       description: req.body.description,
-      instructions: req.body.instructions,
-      difficulty: req.body.difficulty,
       muscleGroup: req.body.muscleGroups || req.body.muscleGroup,
-      equipmentNeeded: req.body.equipment || req.body.equipmentNeeded
+      equipmentNeeded: req.body.equipment || req.body.equipmentNeeded,
+      isStandard: req.body.isStandard
     };
     
     const [updated] = await Exercise.update(updateData, {
@@ -293,23 +294,8 @@ export const updateExercise = async (req, res) => {
     });
     
     if (updated === 1) {
-      const exercise = await Exercise.findByPk(id, { raw: true });
-      
-      // Map the response to camelCase
-      const mappedExercise = {
-        id: exercise.exercise_id,
-        name: exercise.name,
-        category: exercise.category,
-        description: exercise.description,
-        instructions: exercise.instructions,
-        difficulty: exercise.difficulty,
-        muscleGroup: exercise.muscle_group,
-        equipmentNeeded: exercise.equipment_needed,
-        createdBy: exercise.created_by,
-        createdAt: exercise.created_at
-      };
-      
-      res.send(mappedExercise);
+      const exercise = await Exercise.findByPk(id);
+      res.send(exercise);
     } else {
       res.status(404).send({
         message: `Exercise not found with id=${id}`
@@ -339,10 +325,10 @@ export const deleteExercise = async (req, res) => {
     console.log(`Deleting exercise ${id} and all related records...`);
     
     // Delete related records first (foreign key constraints)
-    // 1. Delete from exercise_plan_items (if you have this model)
+    // 1. Delete from exercise_plan_details (if you have this model)
     if (db.exercisePlanItem) {
       await db.exercisePlanItem.destroy({ 
-        where: { exercise_id: id } 
+        where: { exerciseId: id } 
       });
       console.log('Deleted exercise plan items');
     }

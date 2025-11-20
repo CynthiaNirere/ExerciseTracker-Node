@@ -16,9 +16,14 @@ const Coach = sequelize.define(
     experienceYears: {
       type: DataTypes.INTEGER,
       allowNull: true,
+      defaultValue: 0,
       field: 'experience_years'
     },
     team: {
+      type: DataTypes.STRING(100),
+      allowNull: true,
+    },
+    specialization: {  // NEW FIELD
       type: DataTypes.STRING(100),
       allowNull: true,
     }

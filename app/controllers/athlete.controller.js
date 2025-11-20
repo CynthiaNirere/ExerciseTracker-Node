@@ -6,7 +6,6 @@ const ExerciseResult = db.exerciseResult;
 const Exercise = db.exercise;
 const User = db.user;
 
-
 export const getProfile = async (req, res) => {
   try {
     const athleteId = req.user.userId;
@@ -27,37 +26,50 @@ export const getProfile = async (req, res) => {
   }
 };
 
-// Update athlete's profile
+// ✅ FIXED: Update athlete's profile
 export const updateProfile = async (req, res) => {
   try {
     const athleteId = req.user.userId;
     console.log("Updating profile for athlete:", athleteId);
+    console.log("Request body:", req.body);
     
-    const [updated] = await AthleteProfile.update(req.body, {
+    // Check if profile exists first
+    const existingProfile = await AthleteProfile.findOne({
       where: { athleteId: athleteId }
     });
 
-    if (updated) {
+    if (existingProfile) {
+      // Profile exists - UPDATE it
+      console.log("✅ Profile exists, updating...");
+      await AthleteProfile.update(req.body, {
+        where: { athleteId: athleteId }
+      });
+      
+      // Fetch updated profile
       const updatedProfile = await AthleteProfile.findOne({
         where: { athleteId: athleteId }
       });
+      
       return res.json(updatedProfile);
+    } else {
+      // Profile doesn't exist - CREATE it
+      console.log("✅ Profile doesn't exist, creating...");
+      const newProfile = await AthleteProfile.create({
+        athleteId: athleteId,
+        ...req.body
+      });
+      
+      return res.status(201).json(newProfile);
     }
-
-    // If profile doesn't exist, create it
-    const newProfile = await AthleteProfile.create({
-      athleteId: athleteId,
-      ...req.body
-    });
-    
-    res.status(201).json(newProfile);
   } catch (error) {
-    console.error("Error updating profile:", error);
-    res.status(500).json({ message: "Error updating profile", error: error.message });
+    console.error("❌ Error updating profile:", error);
+    res.status(500).json({ 
+      message: "Error updating profile", 
+      error: error.message,
+      stack: error.stack  // ✅ Added stack trace for debugging
+    });
   }
 };
-
-
 
 // Get athlete's goals
 export const getGoals = async (req, res) => {
@@ -67,7 +79,7 @@ export const getGoals = async (req, res) => {
     
     const goals = await Goal.findAll({
       where: { athleteId: athleteId },
-      order: [['id', 'DESC']]  // Changed from createdAt to id
+      order: [['startDate', 'DESC']] 
     });
 
     console.log("Found goals:", goals.length);
@@ -147,7 +159,6 @@ export const deleteGoal = async (req, res) => {
   }
 };
 
-
 // Get exercise results
 export const getExerciseResults = async (req, res) => {
   try {
@@ -158,7 +169,7 @@ export const getExerciseResults = async (req, res) => {
       include: [{
         model: Exercise,
         as: 'exercise',
-        attributes: ['id', 'name', 'description', 'category']
+        attributes: ['id', 'name', 'description', 'muscleGroup']  
       }],
       where: { athleteId: athleteId },
       order: [['performedDate', 'DESC']]
@@ -245,12 +256,12 @@ export const getProgress = async (req, res) => {
     const goals = await Goal.findAll({
       where: { 
         athleteId: athleteId,
-        status: 'in_progress'
+        status: 'active' 
       },
-      order: [['id', 'DESC']]  // Changed from createdAt to id
+      order: [['startDate', 'DESC']] 
     });
 
-    console.log("Found in-progress goals:", goals.length);
+    console.log("Found active goals:", goals.length);
     res.json(goals);
   } catch (error) {
     console.error("Error fetching progress:", error);
