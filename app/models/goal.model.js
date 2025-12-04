@@ -19,6 +19,33 @@ const Goal = sequelize.define(
         key: 'user_id'
       }
     },
+    createdBy: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      field: 'created_by',
+      references: {
+        model: 'users',
+        key: 'user_id'
+      }
+    },
+    exerciseId: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      field: 'exercise_id',
+      references: {
+        model: 'exercises',
+        key: 'exercise_id'
+      }
+    },
+    planId: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      field: 'plan_id',
+      references: {
+        model: 'exercise_plans',
+        key: 'plan_id'
+      }
+    },
     title: {
       type: DataTypes.STRING(255),
       allowNull: false
@@ -57,12 +84,12 @@ const Goal = sequelize.define(
       allowNull: true,
       field: 'end_date'
     },
-    createdAt: {  // NEW FIELD
+    createdAt: {
       type: DataTypes.DATE,
       allowNull: true,
       field: 'created_at'
     },
-    updatedAt: {  // NEW FIELD
+    updatedAt: {
       type: DataTypes.DATE,
       allowNull: true,
       field: 'updated_at'

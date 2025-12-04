@@ -103,7 +103,6 @@ exports.login = async (req, res) => {
     const existingSession = await Session.findOne({
       where: {
         email: email,
-        token: { [Op.ne]: "" },
       },
     });
 
@@ -112,11 +111,8 @@ exports.login = async (req, res) => {
       
       // Check if session is expired
       if (sessionData.expirationDate < Date.now()) {
-        console.log("Session expired, clearing it");
-        await Session.update(
-          { token: "" }, 
-          { where: { id: sessionData.id } }
-        );
+        console.log("Session expired, deleting it");
+        await Session.destroy({ where: { id: sessionData.id } });
       } else {
         // Valid session exists, return it
         console.log("Found existing valid session");
@@ -139,12 +135,12 @@ exports.login = async (req, res) => {
     let tempExpirationDate = new Date();
     tempExpirationDate.setDate(tempExpirationDate.getDate() + 1);
     
-   const newSession = {
-  token: token,
-  email: email,
-  userId: user.id,               
-  expirationDate: tempExpirationDate,  
-};
+    const newSession = {
+      token: token,
+      email: email,
+      userId: user.id,               
+      expirationDate: tempExpirationDate,  
+    };
 
     console.log("making a new session");
     console.log(newSession);
@@ -201,18 +197,16 @@ exports.logout = async (req, res) => {
     });
   }
 
-  // Clear the session token
-  session.token = "";
-
+  // Delete the session
   try {
-    const num = await Session.update(session, { where: { id: session.id } });
+    const num = await Session.destroy({ where: { id: session.id } });
     if (num == 1) {
       console.log("successfully logged out");
       return res.send({
         message: "User has been successfully logged out!",
       });
     } else {
-      console.log("failed to update session");
+      console.log("failed to delete session");
       return res.send({
         message: `Error logging out user.`,
       });

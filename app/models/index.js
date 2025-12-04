@@ -28,7 +28,9 @@ db.exercisePlanItem = ExercisePlanItem;
 db.session = Session;
 db.athletePlan = AthletePlan;
 
-
+// ========================================
+// User Associations
+// ========================================
 
 // User <-> AthleteProfile (One-to-One)
 User.hasOne(AthleteProfile, {
@@ -50,7 +52,7 @@ Coach.belongsTo(User, {
   as: 'user'
 });
 
-// User <-> Goal (One-to-Many)
+// User <-> Goal (One-to-Many) - Athlete's goals
 User.hasMany(Goal, {
   foreignKey: 'athleteId',  
   as: 'goals'
@@ -59,6 +61,44 @@ Goal.belongsTo(User, {
   foreignKey: 'athleteId',  
   as: 'athlete'
 });
+
+// ========================================
+// NEW: Goal Creator Associations
+// ========================================
+
+// User <-> Goal (One-to-Many) - Goals created by user (coach or athlete)
+User.hasMany(Goal, {
+  foreignKey: 'createdBy',
+  as: 'createdGoals'
+});
+Goal.belongsTo(User, {
+  foreignKey: 'createdBy',
+  as: 'creator'
+});
+
+// Exercise <-> Goal (One-to-Many) - Goals linked to exercises
+Exercise.hasMany(Goal, {
+  foreignKey: 'exerciseId',
+  as: 'goals'
+});
+Goal.belongsTo(Exercise, {
+  foreignKey: 'exerciseId',
+  as: 'exercise'
+});
+
+// ExercisePlan <-> Goal (One-to-Many) - Goals linked to plans
+ExercisePlan.hasMany(Goal, {
+  foreignKey: 'planId',
+  as: 'goals'
+});
+Goal.belongsTo(ExercisePlan, {
+  foreignKey: 'planId',
+  as: 'plan'
+});
+
+// ========================================
+// Exercise Result Associations
+// ========================================
 
 // User <-> ExerciseResult (One-to-Many)
 User.hasMany(ExerciseResult, {
@@ -80,6 +120,34 @@ ExerciseResult.belongsTo(Exercise, {
   as: 'exercise'
 });
 
+// ========================================
+// NEW: Exercise Result Goal Tracking
+// ========================================
+
+// Goal <-> ExerciseResult (One-to-Many) - Results linked to goals
+Goal.hasMany(ExerciseResult, {
+  foreignKey: 'goalId',
+  as: 'results'
+});
+ExerciseResult.belongsTo(Goal, {
+  foreignKey: 'goalId',
+  as: 'goal'
+});
+
+// AthletePlan <-> ExerciseResult (One-to-Many) - Results linked to assigned plans
+AthletePlan.hasMany(ExerciseResult, {
+  foreignKey: 'athletePlanId',
+  as: 'results'
+});
+ExerciseResult.belongsTo(AthletePlan, {
+  foreignKey: 'athletePlanId',
+  as: 'athletePlan'
+});
+
+// ========================================
+// Exercise Plan Associations
+// ========================================
+
 // ExercisePlan <-> Exercise (Many-to-Many through ExercisePlanItem)
 ExercisePlan.belongsToMany(Exercise, {
   through: ExercisePlanItem,
@@ -94,11 +162,21 @@ Exercise.belongsToMany(ExercisePlan, {
   as: 'plans'
 });
 
-// AthletePlan associations
+// ========================================
+// Athlete Plan Associations
+// ========================================
+
+// AthletePlan <-> User (athlete)
 AthletePlan.belongsTo(User, {
   foreignKey: 'athleteId',
   as: 'athlete'
 });
+User.hasMany(AthletePlan, {
+  foreignKey: 'athleteId',
+  as: 'assignedPlans'
+});
+
+// AthletePlan <-> ExercisePlan
 AthletePlan.belongsTo(ExercisePlan, {
   foreignKey: 'planId',
   as: 'plan'
@@ -107,9 +185,15 @@ ExercisePlan.hasMany(AthletePlan, {
   foreignKey: 'planId',
   as: 'assignments'
 });
+
+// AthletePlan <-> User (assignedBy - coach who assigned)
+AthletePlan.belongsTo(User, {
+  foreignKey: 'assignedBy',
+  as: 'assigner'
+});
 User.hasMany(AthletePlan, {
-  foreignKey: 'athleteId',
-  as: 'assignedPlans'
+  foreignKey: 'assignedBy',
+  as: 'plansAssigned'
 });
 
 export default db;
