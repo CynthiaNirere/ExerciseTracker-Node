@@ -17,18 +17,18 @@ const ExercisePlan = sequelize.define("ExercisePlan", {
       type: DataTypes.TEXT,
       allowNull: true
     },
-    isStandard: {  // NEW FIELD
+    isStandard: {  
       type: DataTypes.BOOLEAN,
       allowNull: true,
       defaultValue: false,
       field: 'is_standard'
     },
-    createdBy: {  // FIXED - use camelCase
+    createdBy: { 
       type: DataTypes.INTEGER,
       allowNull: false,
       field: 'created_by'
     },
-    createdAt: {  // FIXED - use camelCase
+    createdAt: {  
       type: DataTypes.DATE,
       defaultValue: DataTypes.NOW,
       field: 'created_at'

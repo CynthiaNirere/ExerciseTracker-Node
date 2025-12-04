@@ -26,7 +26,7 @@ const Exercise = sequelize.define("Exercise", {
       allowNull: true,
       field: 'equipment_needed'
     },
-    isStandard: {  // NEW FIELD
+    isStandard: {  
       type: DataTypes.BOOLEAN,
       allowNull: true,
       defaultValue: false,
@@ -42,7 +42,7 @@ const Exercise = sequelize.define("Exercise", {
       defaultValue: DataTypes.NOW,
       field: 'created_at'
     },
-    updatedAt: {  // NEW FIELD
+    updatedAt: {  
       type: DataTypes.DATE,
       allowNull: true,
       field: 'updated_at'
