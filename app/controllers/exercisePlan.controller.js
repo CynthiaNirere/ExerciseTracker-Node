@@ -1,13 +1,64 @@
 import db from "../models/index.js";
+
 const ExercisePlan = db.exercisePlan;
 const Exercise = db.exercise;
 const ExercisePlanItem = db.exercisePlanItem;
 const AthletePlan = db.athletePlan;
 const { Op } = db.Sequelize;
 
+// Retrieve all Exercise Plans
+export const findAll = async (req, res) => {
+  try {
+    console.log("📋 Fetching all exercise plans...");
+    
+    const plans = await ExercisePlan.findAll({
+      include: [{
+        model: Exercise,
+        as: 'exercises',
+        through: {
+          attributes: ['sets', 'reps', 'durationSeconds', 'restSeconds', 'orderIndex']
+        },
+        attributes: ['id', 'name', 'muscleGroup', 'equipmentNeeded']
+      }],
+      order: [['createdAt', 'DESC']]
+    });
+    
+    console.log(`✅ Found ${plans.length} plans`);
+    
+    // Count assigned athletes for each plan
+    const formattedPlans = await Promise.all(plans.map(async (plan) => {
+      const assignedCount = await AthletePlan.count({
+        where: { planId: plan.id }
+      });
+      
+      return {
+        id: plan.id,
+        name: plan.name,
+        description: plan.description,
+        isStandard: plan.isStandard,
+        assignedAthletes: assignedCount,
+        exercises: plan.exercises ? plan.exercises.length : 0,
+        exerciseList: plan.exercises || [],
+        createdAt: plan.createdAt
+      };
+    }));
+    
+    res.send(formattedPlans);
+  } catch (err) {
+    console.error("❌ Error in findAll exercise plans:", err.message);
+    console.error("Stack:", err.stack);
+    res.status(500).send({ 
+      message: "Unable to load training plans. Please try again.",
+      error: err.message
+    });
+  }
+};
+
 // Create and Save a new Exercise Plan
 export const create = async (req, res) => {
   try {
+    console.log("📝 Creating new exercise plan:", req.body.name);
+    
     if (!req.body.name) {
       return res.status(400).send({ message: "Plan name is required" });
     }
@@ -18,6 +69,8 @@ export const create = async (req, res) => {
       isStandard: req.body.isStandard || false,
       createdBy: req.user?.userId || 1,
     });
+
+    console.log("✅ Plan created with ID:", plan.id);
 
     if (req.body.exercises && req.body.exercises.length > 0) {
       const exerciseItems = req.body.exercises.map((item, index) => ({
@@ -32,6 +85,7 @@ export const create = async (req, res) => {
       }));
       
       await ExercisePlanItem.bulkCreate(exerciseItems);
+      console.log(`✅ Added ${exerciseItems.length} exercises to plan`);
     }
 
     const newPlan = await ExercisePlan.findByPk(plan.id, {
@@ -63,49 +117,11 @@ export const create = async (req, res) => {
 
     res.status(201).send(formattedPlan);
   } catch (err) {
+    console.error("❌ Error creating exercise plan:", err.message);
+    console.error("Stack:", err.stack);
     res.status(500).send({
-      message: "Unable to create training plan. Please try again."
-    });
-  }
-};
-
-// Retrieve all Exercise Plans
-export const findAll = async (req, res) => {
-  try {
-    const plans = await ExercisePlan.findAll({
-      include: [{
-        model: Exercise,
-        as: 'exercises',
-        through: {
-          attributes: ['sets', 'reps', 'durationSeconds', 'restSeconds', 'orderIndex']
-        },
-        attributes: ['id', 'name', 'muscleGroup', 'equipmentNeeded']
-      }],
-      order: [['createdAt', 'DESC']]
-    });
-    
-    // Count assigned athletes for each plan
-    const formattedPlans = await Promise.all(plans.map(async (plan) => {
-      const assignedCount = await AthletePlan.count({
-        where: { planId: plan.id }
-      });
-      
-      return {
-        id: plan.id,
-        name: plan.name,
-        description: plan.description,
-        isStandard: plan.isStandard,
-        assignedAthletes: assignedCount,
-        exercises: plan.exercises ? plan.exercises.length : 0,
-        exerciseList: plan.exercises || [],
-        createdAt: plan.createdAt
-      };
-    }));
-    
-    res.send(formattedPlans);
-  } catch (err) {
-    res.status(500).send({ 
-      message: "Unable to load training plans. Please try again." 
+      message: "Unable to create training plan. Please try again.",
+      error: err.message
     });
   }
 };
@@ -114,6 +130,7 @@ export const findAll = async (req, res) => {
 export const findOne = async (req, res) => {
   try {
     const id = req.params.id;
+    console.log("🔍 Fetching plan:", id);
     
     const plan = await ExercisePlan.findByPk(id, {
       include: [{
@@ -148,10 +165,13 @@ export const findOne = async (req, res) => {
       createdAt: plan.createdAt
     };
     
+    console.log("✅ Plan found");
     res.send(formattedPlan);
   } catch (err) {
+    console.error("❌ Error finding plan:", err.message);
     res.status(500).send({ 
-      message: "Unable to load training plan. Please try again." 
+      message: "Unable to load training plan. Please try again.",
+      error: err.message
     });
   }
 };
@@ -160,6 +180,7 @@ export const findOne = async (req, res) => {
 export const update = async (req, res) => {
   try {
     const id = req.params.id;
+    console.log("✏️ Updating plan:", id);
     
     const existingPlan = await ExercisePlan.findByPk(id);
     
@@ -225,10 +246,13 @@ export const update = async (req, res) => {
       createdAt: updatedPlan.createdAt
     };
     
+    console.log("✅ Plan updated");
     res.send(formattedPlan);
   } catch (err) {
+    console.error("❌ Error updating plan:", err.message);
     res.status(500).send({
-      message: "Unable to update training plan. Please try again."
+      message: "Unable to update training plan. Please try again.",
+      error: err.message
     });
   }
 };
@@ -237,6 +261,7 @@ export const update = async (req, res) => {
 export const remove = async (req, res) => {
   try {
     const id = req.params.id;
+    console.log("🗑️ Deleting plan:", id);
     
     await ExercisePlanItem.destroy({
       where: { planId: id }
@@ -247,6 +272,7 @@ export const remove = async (req, res) => {
     });
     
     if (deleted) {
+      console.log("✅ Plan deleted");
       return res.send({ 
         message: "Training plan deleted successfully" 
       });
@@ -256,8 +282,10 @@ export const remove = async (req, res) => {
       message: "Training plan not found"
     });
   } catch (err) {
+    console.error("❌ Error deleting plan:", err.message);
     res.status(500).send({
-      message: "Unable to delete training plan. Please try again."
+      message: "Unable to delete training plan. Please try again.",
+      error: err.message
     });
   }
 };
@@ -266,6 +294,7 @@ export const remove = async (req, res) => {
 export const findByCoach = async (req, res) => {
   try {
     const coachId = req.params.coachId;
+    console.log("👨‍🏫 Fetching plans for coach:", coachId);
     
     const plans = await ExercisePlan.findAll({
       where: { createdBy: coachId },
@@ -297,10 +326,13 @@ export const findByCoach = async (req, res) => {
       };
     }));
     
+    console.log(`✅ Found ${formattedPlans.length} plans for coach`);
     res.send(formattedPlans);
   } catch (err) {
+    console.error("❌ Error fetching coach plans:", err.message);
     res.status(500).send({
-      message: "Unable to load training plans. Please try again."
+      message: "Unable to load training plans. Please try again.",
+      error: err.message
     });
   }
 };
@@ -310,6 +342,7 @@ export const assignPlanToAthlete = async (req, res) => {
   try {
     const { planId } = req.params;
     const { athleteId } = req.body;
+    console.log(`📌 Assigning plan ${planId} to athlete ${athleteId}`);
     
     const plan = await ExercisePlan.findByPk(planId);
     if (!plan) {
@@ -340,14 +373,17 @@ export const assignPlanToAthlete = async (req, res) => {
       status: 'active'
     });
     
+    console.log("✅ Plan assigned");
     res.status(201).json({
       message: "Training plan assigned successfully",
       assignment: assignment
     });
     
   } catch (err) {
+    console.error("❌ Error assigning plan:", err.message);
     res.status(500).json({
-      message: "Unable to assign training plan. Please try again."
+      message: "Unable to assign training plan. Please try again.",
+      error: err.message
     });
   }
 };
@@ -356,6 +392,7 @@ export const assignPlanToAthlete = async (req, res) => {
 export const getAssignedPlans = async (req, res) => {
   try {
     const { athleteId } = req.params;
+    console.log(`📋 Fetching assigned plans for athlete: ${athleteId}`);
     
     const assignments = await AthletePlan.findAll({
       where: { athleteId: athleteId },
@@ -387,11 +424,15 @@ export const getAssignedPlans = async (req, res) => {
       }
     }));
     
+    console.log(`✅ Found ${formattedPlans.length} assigned plans`);
     res.json(formattedPlans);
     
   } catch (err) {
+    console.error("❌ Error fetching assigned plans:", err.message);
+    console.error("Stack:", err.stack);
     res.status(500).json({
-      message: "Unable to load assigned plans. Please try again."
+      message: "Unable to load assigned plans. Please try again.",
+      error: err.message
     });
   }
 };
@@ -400,6 +441,7 @@ export const getAssignedPlans = async (req, res) => {
 export const unassignPlanFromAthlete = async (req, res) => {
   try {
     const { planId, athleteId } = req.params;
+    console.log(`📌 Unassigning plan ${planId} from athlete ${athleteId}`);
     
     const deleted = await AthletePlan.destroy({
       where: {
@@ -409,14 +451,17 @@ export const unassignPlanFromAthlete = async (req, res) => {
     });
     
     if (deleted) {
+      console.log("✅ Plan unassigned");
       return res.json({ message: "Training plan unassigned successfully" });
     }
     
     res.status(404).json({ message: "Assignment not found" });
     
   } catch (err) {
+    console.error("❌ Error unassigning plan:", err.message);
     res.status(500).json({
-      message: "Unable to unassign training plan. Please try again."
+      message: "Unable to unassign training plan. Please try again.",
+      error: err.message
     });
   }
 };

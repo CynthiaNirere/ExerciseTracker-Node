@@ -1,69 +1,47 @@
 import { DataTypes } from "sequelize";
 import sequelize from "../config/sequelizeInstance.js";
 
-const AthletePlan = sequelize.define("AthletePlan", {
+const ExercisePlan = sequelize.define("ExercisePlan", {
   id: {
     type: DataTypes.INTEGER,
     autoIncrement: true,
     primaryKey: true,
-    field: 'athlete_plan_id'
+    field: 'plan_id'
   },
-  athleteId: {
-    type: DataTypes.INTEGER,
+  name: {
+    type: DataTypes.STRING(255),
     allowNull: false,
-    field: 'athlete_id',
-    references: {
-      model: 'users',
-      key: 'user_id'
-    }
+    field: 'plan_name'
   },
-  planId: {
-    type: DataTypes.INTEGER,
-    allowNull: false,
-    field: 'plan_id',
-    references: {
-      model: 'exercise_plans',
-      key: 'plan_id'
-    }
+  description: {
+    type: DataTypes.TEXT,
+    allowNull: true
   },
-  assignedBy: {
-    type: DataTypes.INTEGER,
-    allowNull: false,
-    field: 'assigned_by',
-    references: {
-      model: 'users',
-      key: 'user_id'
-    }
-  },
-  assignedDate: {
-    type: DataTypes.DATE,
-    allowNull: false,
-    field: 'assigned_date'
-  },
-  startDate: {
-    type: DataTypes.DATE,
+  isStandard: {  
+    type: DataTypes.BOOLEAN,
     allowNull: true,
-    field: 'start_date'
+    defaultValue: false,
+    field: 'is_standard'
   },
-  endDate: {
-    type: DataTypes.DATE,
-    allowNull: true,
-    field: 'end_date'
+  createdBy: { 
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    field: 'created_by'
   },
-  status: {
-    type: DataTypes.ENUM('active', 'completed', 'paused', 'cancelled'),
-    defaultValue: 'active',
-    allowNull: false
-  },
-  createdAt: {
+  createdAt: {  
     type: DataTypes.DATE,
     defaultValue: DataTypes.NOW,
     field: 'created_at'
+  },
+  updatedAt: {
+    type: DataTypes.DATE,
+    allowNull: true,
+    field: 'updated_at'
   }
 }, {
-  tableName: 'athlete_plans',
+  tableName: 'exercise_plans',
   timestamps: false,
   underscored: false
 });
 
-export default AthletePlan;
+export default ExercisePlan;
