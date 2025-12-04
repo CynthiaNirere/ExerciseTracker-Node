@@ -23,7 +23,7 @@ const Coach = sequelize.define(
       type: DataTypes.STRING(100),
       allowNull: true,
     },
-    specialization: {  // NEW FIELD
+    specialization: { 
       type: DataTypes.STRING(100),
       allowNull: true,
     }
