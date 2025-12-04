@@ -1,6 +1,8 @@
 import db from "../models/index.js";
 const ExerciseResult = db.exerciseResult;
 const Exercise = db.exercise;
+const Goal = db.goal;
+const ExercisePlan = db.exercisePlan;
 const { Op } = db.Sequelize;
 
 // ========================================
@@ -14,17 +16,10 @@ export const getAllExercises = async (req, res) => {
       order: [['name', 'ASC']]
     });
     
-    // Convert Sequelize instances to plain objects
     const plainExercises = exercises.map(ex => ex.toJSON());
-    
-    console.log(`Found ${plainExercises.length} exercises`);
-    if (plainExercises.length > 0) {
-      console.log('First exercise:', plainExercises[0]);
-    }
     
     res.send(plainExercises);
   } catch (err) {
-    console.error("Error fetching exercises:", err);
     res.status(500).send({
       message: "Error retrieving exercises.",
       error: err.message
@@ -46,7 +41,6 @@ export const getExerciseById = async (req, res) => {
     
     res.send(exercise);
   } catch (err) {
-    console.error("Error fetching exercise:", err);
     res.status(500).send({
       message: "Error retrieving exercise."
     });
@@ -75,6 +69,7 @@ export const create = async (req, res) => {
     const exerciseResult = await ExerciseResult.create({
       athleteId: req.body.athleteId,
       athletePlanId: req.body.athletePlanId || null,
+      goalId: req.body.goalId || null,
       exerciseId: req.body.exerciseId || null,
       performedDate: req.body.performedDate,
       setsDone: req.body.setsDone || null,
@@ -86,7 +81,6 @@ export const create = async (req, res) => {
 
     res.status(201).send(exerciseResult);
   } catch (err) {
-    console.error("Error creating exercise result:", err);
     res.status(500).send({
       message: err.message || "Error creating exercise result.",
     });
@@ -104,12 +98,17 @@ export const findAll = async (req, res) => {
           as: 'exercise',
           attributes: ['id', 'name', 'description', 'muscleGroup'],  
           required: false
+        },
+        {
+          model: Goal,
+          as: 'goal',
+          attributes: ['id', 'title'],
+          required: false
         }
       ]
     });
     res.send(exerciseResults);
   } catch (err) {
-    console.error("Error finding all exercise results:", err);
     res.status(500).send({ message: "Error retrieving exercise results." });
   }
 };
@@ -119,9 +118,6 @@ export const findByAthlete = async (req, res) => {
   try {
     const athleteId = req.params.athleteId;
     
-    console.log("Finding exercise results for athlete:", athleteId);
-    
-    // Get all exercise results for the athlete
     const exerciseResults = await ExerciseResult.findAll({ 
       where: { athleteId: athleteId },
       include: [
@@ -130,26 +126,42 @@ export const findByAthlete = async (req, res) => {
           as: 'exercise',
           attributes: ['id', 'name', 'description', 'muscleGroup'], 
           required: false
+        },
+        {
+          model: Goal,
+          as: 'goal',
+          attributes: ['id', 'title'],
+          required: false
+        },
+        {
+          model: db.athletePlan,
+          as: 'athletePlan',
+          attributes: ['id'],
+          include: [{
+            model: ExercisePlan,
+            as: 'plan',
+            attributes: ['id', 'name']
+          }],
+          required: false
         }
       ],
       order: [['performedDate', 'DESC']],
       raw: false
     });
-
-    console.log(`Found ${exerciseResults.length} exercise results for athlete ${athleteId}`);
     
-    // Map to a clean JSON response
     const results = exerciseResults.map(result => {
       const data = result.toJSON();
       return {
         ...data,
-        exerciseName: data.exercise?.name || 'Unknown Exercise'
+        exerciseName: data.exercise?.name || 'Unknown Exercise',
+        goalTitle: data.goal?.title || null,
+        planName: data.athletePlan?.plan?.name || null,
+        source: data.goalId ? 'goal' : (data.athletePlanId ? 'plan' : 'manual')
       };
     });
     
     res.send(results);
   } catch (err) {
-    console.error("Error finding exercise results by athlete:", err);
     res.status(500).send({ 
       message: "Error retrieving exercise results for athlete.",
       error: err.message
@@ -167,6 +179,12 @@ export const findOne = async (req, res) => {
           model: Exercise,
           as: 'exercise',
           attributes: ['id', 'name', 'description', 'muscleGroup']  
+        },
+        {
+          model: Goal,
+          as: 'goal',
+          attributes: ['id', 'title'],
+          required: false
         }
       ]
     });
@@ -179,7 +197,6 @@ export const findOne = async (req, res) => {
     
     res.send(exerciseResult);
   } catch (err) {
-    console.error("Error finding exercise result:", err);
     res.status(500).send({ message: "Error retrieving exercise result." });
   }
 };
@@ -200,7 +217,6 @@ export const update = async (req, res) => {
       });
     }
   } catch (err) {
-    console.error("Error updating exercise result:", err);
     res.status(500).send({ message: "Error updating exercise result." });
   }
 };
@@ -217,33 +233,43 @@ export const remove = async (req, res) => {
       res.status(404).send({ message: `Exercise result not found.` });
     }
   } catch (err) {
-    console.error("Error deleting exercise result:", err);
     res.status(500).send({ message: "Error deleting exercise result." });
   }
 };
 
-// Get Exercise Statistics for an Athlete
+// Get Exercise Statistics for an Athlete (FIXED TOTAL WORKOUTS COUNT)
 export const getStatistics = async (req, res) => {
   try {
     const athleteId = req.params.athleteId;
     
+    // Count unique workout dates using raw SQL to avoid column name issues
+    const uniqueWorkoutDates = await db.sequelize.query(
+      `SELECT DISTINCT performed_date FROM exercise_results WHERE athlete_id = ?`,
+      {
+        replacements: [athleteId],
+        type: db.Sequelize.QueryTypes.SELECT
+      }
+    );
+
+    const totalWorkouts = uniqueWorkoutDates.length;
+    
+    // Get all results for other statistics
     const exerciseResults = await ExerciseResult.findAll({
       where: { athleteId: athleteId }
     });
 
-    const totalWorkouts = exerciseResults.length;
     const totalDuration = exerciseResults.reduce((sum, ex) => sum + (ex.durationSeconds || 0), 0);
     const totalWeight = exerciseResults.reduce((sum, ex) => sum + (parseFloat(ex.weightUsed) || 0), 0);
 
     res.send({
-      totalWorkouts,
+      totalWorkouts: totalWorkouts,
+      totalExercises: exerciseResults.length,
       totalDurationMinutes: Math.round(totalDuration / 60),
       totalWeightLifted: totalWeight,
       avgDurationMinutes: totalWorkouts > 0 ? Math.round(totalDuration / totalWorkouts / 60) : 0
     });
   } catch (err) {
-    console.error("Error fetching statistics:", err);
-    res.status(500).send({ message: "Error fetching statistics." });
+    res.status(500).send({ message: "Error fetching statistics.", error: err.message });
   }
 };
 
@@ -265,7 +291,6 @@ export const createExercise = async (req, res) => {
     
     res.status(201).send(exercise);
   } catch (err) {
-    console.error("Error creating exercise:", err);
     res.status(500).send({
       message: "Error creating exercise.",
       error: err.message
@@ -277,9 +302,6 @@ export const createExercise = async (req, res) => {
 export const updateExercise = async (req, res) => {
   try {
     const id = req.params.id;
-    
-    console.log('Updating exercise ID:', id);
-    console.log('Update data:', req.body);
     
     const updateData = {
       name: req.body.name,
@@ -302,7 +324,6 @@ export const updateExercise = async (req, res) => {
       });
     }
   } catch (err) {
-    console.error("Error updating exercise:", err);
     res.status(500).send({
       message: "Error updating exercise."
     });
@@ -314,7 +335,6 @@ export const deleteExercise = async (req, res) => {
   try {
     const id = req.params.id;
     
-    // Check if exercise exists first
     const exercise = await Exercise.findByPk(id);
     if (!exercise) {
       return res.status(404).send({ 
@@ -322,28 +342,19 @@ export const deleteExercise = async (req, res) => {
       });
     }
     
-    console.log(`Deleting exercise ${id} and all related records...`);
-    
-    // Delete related records first (foreign key constraints)
-    // 1. Delete from exercise_plan_details (if you have this model)
     if (db.exercisePlanItem) {
       await db.exercisePlanItem.destroy({ 
         where: { exerciseId: id } 
       });
-      console.log('Deleted exercise plan items');
     }
     
-    // 2. Delete from exercise_results
     await ExerciseResult.destroy({ 
       where: { exerciseId: id } 
     });
-    console.log('Deleted exercise results');
     
-    // 3. Now delete the exercise
     const deleted = await Exercise.destroy({ where: { id: id } });
     
     if (deleted) {
-      console.log('Exercise deleted successfully');
       return res.send({ message: "Exercise deleted successfully." });
     }
     
@@ -352,8 +363,6 @@ export const deleteExercise = async (req, res) => {
     });
     
   } catch (err) {
-    console.error('Error deleting exercise:', err);
-    console.error('Error message:', err.message);
     res.status(500).send({ 
       message: err.message || "Error deleting exercise." 
     });

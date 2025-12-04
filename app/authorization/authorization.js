@@ -1,4 +1,5 @@
 import db from "../models/index.js";
+
 const Session = db.session;
 
 const authenticate = (req, res, next) => {
@@ -32,6 +33,12 @@ const authenticate = (req, res, next) => {
       console.log("Session expiration:", session.expirationDate);
       
       if (session.expirationDate >= Date.now()) {
+        req.user = {
+          userId: session.userId,
+          email: session.email
+        };
+        
+        console.log("User authenticated:", req.user);
         next();
       } else {
         return res.status(401).send({

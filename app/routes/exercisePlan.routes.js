@@ -7,16 +7,22 @@ const router = express.Router();
 // Existing routes
 router.post("/", authenticate, exercisePlans.create);
 router.get("/", authenticate, exercisePlans.findAll);
-router.get("/difficulty/:difficulty", authenticate, exercisePlans.findByDifficulty);
+
+// NEW: Get plans by coach (must be before /:id to avoid route conflict)
+router.get("/coach/:coachId", authenticate, exercisePlans.findByCoach);
+
+// NEW: Get plans assigned to specific athlete (must be before /:id)
+router.get("/athlete/:athleteId", authenticate, exercisePlans.getAssignedPlans);
+
+// Get single plan by ID
 router.get("/:id", authenticate, exercisePlans.findOne);
+
+// Update and delete
 router.put("/:id", authenticate, exercisePlans.update);
 router.delete("/:id", authenticate, exercisePlans.remove);
 
-// ========================================
 // NEW: Plan Assignment Routes
-// ========================================
 router.post("/:planId/assign", authenticate, exercisePlans.assignPlanToAthlete);
-router.get("/athlete/:athleteId", authenticate, exercisePlans.getAssignedPlans);
 router.delete("/:planId/assign/:athleteId", authenticate, exercisePlans.unassignPlanFromAthlete);
 
 export default router;
