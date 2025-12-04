@@ -1,47 +1,69 @@
 import { DataTypes } from "sequelize";
 import sequelize from "../config/sequelizeInstance.js";
 
-const ExercisePlan = sequelize.define("ExercisePlan", {
-    id: {
-      type: DataTypes.INTEGER,
-      autoIncrement: true,
-      primaryKey: true,
-      field: 'plan_id'
-    },
-    name: {
-      type: DataTypes.STRING(255),
-      allowNull: false,
-      field: 'plan_name'
-    },
-    description: {
-      type: DataTypes.TEXT,
-      allowNull: true
-    },
-    isStandard: {  
-      type: DataTypes.BOOLEAN,
-      allowNull: true,
-      defaultValue: false,
-      field: 'is_standard'
-    },
-    createdBy: { 
-      type: DataTypes.INTEGER,
-      allowNull: false,
-      field: 'created_by'
-    },
-    createdAt: {  
-      type: DataTypes.DATE,
-      defaultValue: DataTypes.NOW,
-      field: 'created_at'
-    },
-    updatedAt: {  // NEW FIELD
-      type: DataTypes.DATE,
-      allowNull: true,
-      field: 'updated_at'
+const AthletePlan = sequelize.define("AthletePlan", {
+  id: {
+    type: DataTypes.INTEGER,
+    autoIncrement: true,
+    primaryKey: true,
+    field: 'athlete_plan_id'
+  },
+  athleteId: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    field: 'athlete_id',
+    references: {
+      model: 'users',
+      key: 'user_id'
     }
-  }, {
-    tableName: 'exercise_plans',
-    timestamps: false,
-    underscored: false
-  });
+  },
+  planId: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    field: 'plan_id',
+    references: {
+      model: 'exercise_plans',
+      key: 'plan_id'
+    }
+  },
+  assignedBy: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    field: 'assigned_by',
+    references: {
+      model: 'users',
+      key: 'user_id'
+    }
+  },
+  assignedDate: {
+    type: DataTypes.DATE,
+    allowNull: false,
+    field: 'assigned_date'
+  },
+  startDate: {
+    type: DataTypes.DATE,
+    allowNull: true,
+    field: 'start_date'
+  },
+  endDate: {
+    type: DataTypes.DATE,
+    allowNull: true,
+    field: 'end_date'
+  },
+  status: {
+    type: DataTypes.ENUM('active', 'completed', 'paused', 'cancelled'),
+    defaultValue: 'active',
+    allowNull: false
+  },
+  createdAt: {
+    type: DataTypes.DATE,
+    defaultValue: DataTypes.NOW,
+    field: 'created_at'
+  }
+}, {
+  tableName: 'athlete_plans',
+  timestamps: false,
+  underscored: false
+});
 
-export default ExercisePlan;
+export default AthletePlan;
