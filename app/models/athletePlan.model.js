@@ -60,6 +60,9 @@ const AthletePlan = sequelize.define("AthletePlan", {
     allowNull: true,
     field: 'created_at'
   }
-);
+}, {
+  tableName: 'athlete_plans',
+  timestamps: false
+});
 
 export default AthletePlan;
