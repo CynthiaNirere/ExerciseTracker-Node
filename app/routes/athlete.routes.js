@@ -14,6 +14,9 @@ router.post("/goals", authenticate, athlete.createGoal);
 router.put("/goals/:id", authenticate, athlete.updateGoal);
 router.delete("/goals/:id", authenticate, athlete.deleteGoal);
 
+// ✨ NEW: Get exercises from assigned plans (for goal creation)
+router.get("/assigned-plan-exercises", authenticate, athlete.getAssignedPlanExercises);
+
 // Exercise Results Routes
 router.get("/results", authenticate, athlete.getExerciseResults);
 router.post("/results", authenticate, athlete.recordExerciseResult);

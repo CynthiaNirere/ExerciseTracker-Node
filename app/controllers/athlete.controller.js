@@ -5,6 +5,10 @@ const Goal = db.goal;
 const ExerciseResult = db.exerciseResult;
 const Exercise = db.exercise;
 const User = db.user;
+const AthletePlan = db.athletePlan;
+const ExercisePlan = db.exercisePlan;
+const ExercisePlanItem = db.exercisePlanItem;
+const { Op } = db.Sequelize;
 
 export const getProfile = async (req, res) => {
   try {
@@ -26,33 +30,28 @@ export const getProfile = async (req, res) => {
   }
 };
 
-// ✅ FIXED: Update athlete's profile
 export const updateProfile = async (req, res) => {
   try {
     const athleteId = req.user.userId;
     console.log("Updating profile for athlete:", athleteId);
     console.log("Request body:", req.body);
     
-    // Check if profile exists first
     const existingProfile = await AthleteProfile.findOne({
       where: { athleteId: athleteId }
     });
 
     if (existingProfile) {
-      // Profile exists - UPDATE it
       console.log("✅ Profile exists, updating...");
       await AthleteProfile.update(req.body, {
         where: { athleteId: athleteId }
       });
       
-      // Fetch updated profile
       const updatedProfile = await AthleteProfile.findOne({
         where: { athleteId: athleteId }
       });
       
       return res.json(updatedProfile);
     } else {
-      // Profile doesn't exist - CREATE it
       console.log("✅ Profile doesn't exist, creating...");
       const newProfile = await AthleteProfile.create({
         athleteId: athleteId,
@@ -66,7 +65,7 @@ export const updateProfile = async (req, res) => {
     res.status(500).json({ 
       message: "Error updating profile", 
       error: error.message,
-      stack: error.stack  // ✅ Added stack trace for debugging
+      stack: error.stack
     });
   }
 };
@@ -79,6 +78,18 @@ export const getGoals = async (req, res) => {
     
     const goals = await Goal.findAll({
       where: { athleteId: athleteId },
+      include: [
+        {
+          model: Exercise,
+          as: 'exercise',
+          attributes: ['id', 'name', 'muscleGroup']
+        },
+        {
+          model: User,
+          as: 'creator',
+          attributes: ['id', 'fName', 'lName']
+        }
+      ],
       order: [['startDate', 'DESC']] 
     });
 
@@ -90,6 +101,70 @@ export const getGoals = async (req, res) => {
   }
 };
 
+// ✨ NEW: Get exercises from assigned plans for goal creation
+export const getAssignedPlanExercises = async (req, res) => {
+  try {
+    const athleteId = req.user.userId;
+    console.log("📋 Fetching assigned plan exercises for athlete:", athleteId);
+    
+    // Get athlete's assigned plans
+    const assignedPlans = await AthletePlan.findAll({
+      where: { 
+        athleteId: athleteId,
+        status: 'active'
+      },
+      include: [{
+        model: ExercisePlan,
+        as: 'plan',
+        include: [{
+          model: Exercise,
+          as: 'exercises',
+          through: {
+            attributes: ['sets', 'reps', 'durationSeconds']
+          }
+        }]
+      }]
+    });
+
+    console.log(`✅ Found ${assignedPlans.length} assigned plans`);
+
+    // Format the response with plan context
+    const exercisesWithPlanInfo = [];
+    
+    for (const assignment of assignedPlans) {
+      if (assignment.plan && assignment.plan.exercises) {
+        for (const exercise of assignment.plan.exercises) {
+          exercisesWithPlanInfo.push({
+            exerciseId: exercise.id,
+            exerciseName: exercise.name,
+            muscleGroup: exercise.muscleGroup,
+            planId: assignment.plan.id,
+            planName: assignment.plan.name,
+            recommendedSets: exercise.ExercisePlanItem?.sets,
+            recommendedReps: exercise.ExercisePlanItem?.reps,
+            recommendedDuration: exercise.ExercisePlanItem?.durationSeconds
+          });
+        }
+      }
+    }
+
+    // Remove duplicates (if exercise appears in multiple plans)
+    const uniqueExercises = Array.from(
+      new Map(exercisesWithPlanInfo.map(e => [e.exerciseId, e])).values()
+    );
+
+    console.log(`✅ Returning ${uniqueExercises.length} unique exercises`);
+    res.json(uniqueExercises);
+    
+  } catch (error) {
+    console.error("❌ Error fetching assigned plan exercises:", error);
+    res.status(500).json({ 
+      message: "Error fetching exercises", 
+      error: error.message 
+    });
+  }
+};
+
 // Create new goal
 export const createGoal = async (req, res) => {
   try {
@@ -98,6 +173,7 @@ export const createGoal = async (req, res) => {
     
     const newGoal = await Goal.create({
       athleteId: athleteId,
+      createdBy: athleteId, // Athlete creates their own goal
       ...req.body
     });
 
@@ -187,22 +263,115 @@ export const getExerciseResults = async (req, res) => {
   }
 };
 
-// Record exercise result
+// ✨ UPDATED: Record exercise result with automatic goal progress update
 export const recordExerciseResult = async (req, res) => {
   try {
     const athleteId = req.user.userId;
-    console.log("Recording exercise result for athlete:", athleteId);
+    console.log("📝 Recording exercise result for athlete:", athleteId);
     console.log("Request body:", req.body);
     
+    // Create the exercise result
     const newResult = await ExerciseResult.create({
       athleteId: athleteId,
       ...req.body
     });
 
-    console.log("Created exercise result:", newResult.id);
+    console.log("✅ Created exercise result:", newResult.id);
+
+    // ========================================
+    // ✨ Automatic Goal Progress Update
+    // ========================================
+    try {
+      const exerciseId = req.body.exerciseId;
+      
+      if (exerciseId) {
+        console.log("🎯 Checking for related goals...");
+        
+        // Find all active goals for this athlete and exercise
+        const relatedGoals = await Goal.findAll({
+          where: {
+            athleteId: athleteId,
+            exerciseId: exerciseId,
+            status: { [Op.in]: ['active', 'in_progress'] }
+          }
+        });
+
+        console.log(`📊 Found ${relatedGoals.length} related goals`);
+
+        for (const goal of relatedGoals) {
+          let currentValue = 0;
+          const targetValue = parseFloat(goal.targetValue);
+
+          // Determine what metric to track based on unit
+          if (goal.unit === 'lbs' || goal.unit === 'kg') {
+            // Weight-based goal - find max weight
+            const maxWeight = await ExerciseResult.max('weight', {
+              where: { athleteId, exerciseId }
+            });
+            currentValue = maxWeight || 0;
+            
+          } else if (goal.unit === 'reps' || goal.unit === 'count') {
+            // Reps-based goal - find max reps in single set
+            const maxReps = await ExerciseResult.max('reps', {
+              where: { athleteId, exerciseId }
+            });
+            currentValue = maxReps || 0;
+            
+          } else if (goal.unit === 'miles' || goal.unit === 'km') {
+            // Distance-based goal - sum total distance
+            const totalDistance = await ExerciseResult.sum('durationSeconds', {
+              where: { athleteId, exerciseId }
+            });
+            currentValue = totalDistance || 0;
+            
+          } else if (goal.unit === 'minutes' || goal.unit === 'seconds') {
+            // Duration-based goal - find max duration
+            const maxDuration = await ExerciseResult.max('durationSeconds', {
+              where: { athleteId, exerciseId }
+            });
+            currentValue = maxDuration || 0;
+            
+          } else {
+            // Default: use reps
+            const maxReps = await ExerciseResult.max('reps', {
+              where: { athleteId, exerciseId }
+            });
+            currentValue = maxReps || 0;
+          }
+
+          // Update goal's current value
+          await goal.update({
+            currentValue: currentValue
+          });
+
+          console.log(`📈 Updated goal "${goal.title}": ${currentValue}/${targetValue} ${goal.unit}`);
+
+          // Check if goal is achieved
+          if (currentValue >= targetValue) {
+            await goal.update({
+              status: 'completed',
+              updatedAt: new Date()
+            });
+            console.log(`🎉 Goal "${goal.title}" ACHIEVED!`);
+          } else {
+            // Calculate progress percentage
+            const progress = ((currentValue / targetValue) * 100).toFixed(1);
+            console.log(`📊 Goal progress: ${progress}%`);
+          }
+        }
+      }
+
+    } catch (goalError) {
+      console.error("⚠️ Error updating goals:", goalError.message);
+      // Don't fail the whole request if goal update fails
+    }
+    // ========================================
+
+    console.log("✅ Exercise result recorded successfully");
     res.status(201).json(newResult);
+    
   } catch (error) {
-    console.error("Error recording exercise result:", error);
+    console.error("❌ Error recording exercise result:", error);
     res.status(500).json({ 
       message: "Error recording exercise result", 
       error: error.message,
@@ -256,8 +425,13 @@ export const getProgress = async (req, res) => {
     const goals = await Goal.findAll({
       where: { 
         athleteId: athleteId,
-        status: 'active' 
+        status: { [Op.in]: ['active', 'in_progress'] }
       },
+      include: [{
+        model: Exercise,
+        as: 'exercise',
+        attributes: ['id', 'name', 'muscleGroup']
+      }],
       order: [['startDate', 'DESC']] 
     });
 
