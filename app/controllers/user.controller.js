@@ -1,24 +1,78 @@
 import db from "../models/index.js";
+
 const User = db.user;
+const AthleteProfile = db.athleteProfile;
 const { Op } = db.Sequelize;
 
 // Create and Save a new User
 export const create = async (req, res) => {
   try {
+    console.log(" Creating user with data:", req.body);
+    
     if (!req.body.fName || !req.body.email) {
       return res.status(400).send({ message: "Required fields missing!" });
     }
+    
+    // Check if email already exists
+    const existingUser = await User.findOne({ where: { email: req.body.email } });
+    if (existingUser) {
+      return res.status(400).send({ message: "Email already exists" });
+    }
+    
+    // Create user
     const user = await User.create({
       fName: req.body.fName,
       lName: req.body.lName,
       email: req.body.email,
-      password_hash: req.body.password_hash || null,
+      password_hash: req.body.password_hash || req.body.password || null,
       role: req.body.role || "athlete",
     });
-    res.status(201).send(user);
+    
+    console.log("User created with ID:", user.id);
+    
+    // If athlete, create athlete profile
+    if (user.role === 'athlete' && (req.body.age || req.body.gender || req.body.sport_type || req.body.team || req.body.bio || req.body.coachId)) {
+      try {
+        await AthleteProfile.create({
+          athleteId: user.id,
+          coachId: req.body.coachId || null,
+          age: req.body.age || null,
+          gender: req.body.gender || null,
+          team: req.body.team || null,
+          sportType: req.body.sport_type || null,
+          bio: req.body.bio || null
+        });
+        console.log(" Athlete profile created");
+      } catch (profileError) {
+        console.error(" Error creating athlete profile:", profileError.message);
+        // Continue anyway - profile can be created later
+      }
+    }
+    
+    // Return formatted user data
+    const responseData = {
+      user_id: user.id,
+      first_name: user.fName,
+      last_name: user.lName,
+      email: user.email,
+      role: user.role,
+      age: req.body.age || null,
+      gender: req.body.gender || null,
+      team: req.body.team || null,
+      sport_type: req.body.sport_type || null,
+      bio: req.body.bio || null,
+      totalWorkouts: 0
+    };
+    
+    console.log(" Returning user data:", responseData);
+    res.status(201).send(responseData);
+    
   } catch (err) {
+    console.error(" Error creating user:", err.message);
+    console.error("Stack:", err.stack);
     res.status(500).send({
       message: err.message || "Error creating user.",
+      error: err.message
     });
   }
 };
@@ -31,6 +85,7 @@ export const findAll = async (req, res) => {
     const users = await User.findAll({ where: condition });
     res.send(users);
   } catch (err) {
+    console.error("Error retrieving users:", err);
     res.status(500).send({ message: "Error retrieving users." });
   }
 };
@@ -44,6 +99,7 @@ export const findOne = async (req, res) => {
       return res.status(404).send({ message: `User not found with id=${id}` });
     res.send(user);
   } catch (err) {
+    console.error("Error retrieving user:", err);
     res.status(500).send({ message: "Error retrieving user." });
   }
 };
@@ -56,6 +112,7 @@ export const findByEmail = async (req, res) => {
     if (!user) return res.status(404).send({ message: "Email not found." });
     res.send(user);
   } catch (err) {
+    console.error("Error retrieving user by email:", err);
     res.status(500).send({ message: "Error retrieving user by email." });
   }
 };
@@ -80,13 +137,13 @@ export const remove = async (req, res) => {
   try {
     const id = req.params.id;
     
+    console.log(`Deleting user ${id} and all related records...`);
+    
     // Check if user exists first
     const user = await User.findByPk(id);
     if (!user) {
       return res.status(404).send({ message: `User not found.` });
     }
-    
-    console.log(`Deleting user ${id} and all related records...`);
     
     // Delete related records first (foreign key constraints)
     // 1. Delete athlete profile
@@ -117,14 +174,14 @@ export const remove = async (req, res) => {
     const deleted = await User.destroy({ where: { id: id } });
     
     if (deleted) {
-      console.log('User deleted successfully');
+      console.log(' User deleted successfully');
       return res.send({ message: "User deleted successfully." });
     }
     
     return res.status(404).send({ message: `User not found.` });
     
   } catch (err) {
-    console.error('Error deleting user:', err);
+    console.error(' Error deleting user:', err);
     console.error('Error message:', err.message);
     res.status(500).send({ 
       message: err.message || "Error deleting user." 
